@@ -21,7 +21,7 @@ FC=gfortran
 AS=as
 
 # Macros
-CND_PLATFORM=MinGW-Windows
+CND_PLATFORM=Cygwin_4.x-Windows
 CND_DLIB_EXT=dll
 CND_CONF=Release
 CND_DISTDIR=dist
@@ -35,7 +35,10 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
-	${OBJECTDIR}/banPCarsServer.o
+	${OBJECTDIR}/banPCarsDump.o \
+	${OBJECTDIR}/banPCarsServer.o \
+	${OBJECTDIR}/logger.o \
+	${OBJECTDIR}/pcarsApi.o
 
 
 # C Compiler Flags
@@ -62,10 +65,25 @@ ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/banpcars.exe: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
 	${LINK.c} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/banpcars ${OBJECTFILES} ${LDLIBSOPTIONS}
 
+${OBJECTDIR}/banPCarsDump.o: banPCarsDump.c 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/banPCarsDump.o banPCarsDump.c
+
 ${OBJECTDIR}/banPCarsServer.o: banPCarsServer.c 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
 	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/banPCarsServer.o banPCarsServer.c
+
+${OBJECTDIR}/logger.o: logger.c 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/logger.o logger.c
+
+${OBJECTDIR}/pcarsApi.o: pcarsApi.c 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/pcarsApi.o pcarsApi.c
 
 # Subprojects
 .build-subprojects:

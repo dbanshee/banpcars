@@ -5,6 +5,8 @@
                    displayName="Header Files"
                    projectFiles="true">
       <itemPath>ext/SharedMemory.h</itemPath>
+      <itemPath>logger.h</itemPath>
+      <itemPath>pcarsApi.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -13,7 +15,10 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
+      <itemPath>banPCarsDump.c</itemPath>
       <itemPath>banPCarsServer.c</itemPath>
+      <itemPath>logger.c</itemPath>
+      <itemPath>pcarsApi.c</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
@@ -37,9 +42,19 @@
       </toolsSet>
       <compileType>
       </compileType>
+      <item path="banPCarsDump.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="banPCarsServer.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="ext/SharedMemory.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="logger.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="logger.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="pcarsApi.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="pcarsApi.h" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
     <conf name="Release" type="1">
@@ -62,9 +77,19 @@
           <developmentMode>5</developmentMode>
         </asmTool>
       </compileType>
+      <item path="banPCarsDump.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="banPCarsServer.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="ext/SharedMemory.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="logger.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="logger.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="pcarsApi.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="pcarsApi.h" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
   </confs>
