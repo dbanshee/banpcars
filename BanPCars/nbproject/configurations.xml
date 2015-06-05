@@ -7,6 +7,8 @@
       <itemPath>ext/SharedMemory.h</itemPath>
       <itemPath>logger.h</itemPath>
       <itemPath>pcarsApi.h</itemPath>
+      <itemPath>serialwin.h</itemPath>
+      <itemPath>simController.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -19,6 +21,8 @@
       <itemPath>banPCarsServer.c</itemPath>
       <itemPath>logger.c</itemPath>
       <itemPath>pcarsApi.c</itemPath>
+      <itemPath>serialwin.c</itemPath>
+      <itemPath>simController.c</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
@@ -56,6 +60,14 @@
       </item>
       <item path="pcarsApi.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="serialwin.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="serialwin.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="simController.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="simController.h" ex="false" tool="3" flavor2="0">
+      </item>
     </conf>
     <conf name="Release" type="1">
       <toolsSet>
@@ -90,6 +102,45 @@
       <item path="pcarsApi.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="pcarsApi.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="serialwin.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="serialwin.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="simController.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="simController.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+    <conf name="aaa" type="1">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+      </compileType>
+      <item path="banPCarsDump.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="banPCarsServer.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="ext/SharedMemory.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="logger.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="logger.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="pcarsApi.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="pcarsApi.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="serialwin.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="serialwin.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="simController.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="simController.h" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
   </confs>

@@ -2,8 +2,6 @@
 #include "logger.h"
 
 
-
-
 int initializePCarsContext(pCarsContext* pContext){
     
     memset(pContext, 0, sizeof(pCarsContext));
@@ -12,7 +10,7 @@ int initializePCarsContext(pCarsContext* pContext){
     
     if(pContext->hFileHandle == NULL){
         CloseHandle(pContext->hFileHandle);
-        blog(LOG_ERROR, "Error opening pcars shared memory file\n");
+        blog(LOG_ERROR, "Error opening pcars shared memory file");
         
         return -1;
     }
@@ -21,13 +19,16 @@ int initializePCarsContext(pCarsContext* pContext){
     
     if(pContext->shmMem == NULL){
         CloseHandle(pContext->hFileHandle);
-        blog(LOG_ERROR, "Error maping memory file\n");
+        blog(LOG_ERROR, "Error maping memory file");
         
         return -1;
     }
+    
+    return 0;
 }
 
-void closePCarsContext(pCarsContext* pContext){
+void freePCarsContext(pCarsContext* pContext){
+    blog(LOG_INFO, "Liberando contexto PCars ...");
     UnmapViewOfFile(pContext->shmMem);
     CloseHandle(pContext->hFileHandle);
 }

@@ -38,7 +38,9 @@ OBJECTFILES= \
 	${OBJECTDIR}/banPCarsDump.o \
 	${OBJECTDIR}/banPCarsServer.o \
 	${OBJECTDIR}/logger.o \
-	${OBJECTDIR}/pcarsApi.o
+	${OBJECTDIR}/pcarsApi.o \
+	${OBJECTDIR}/serialwin.o \
+	${OBJECTDIR}/simController.o
 
 
 # C Compiler Flags
@@ -84,6 +86,16 @@ ${OBJECTDIR}/pcarsApi.o: pcarsApi.c
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
 	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/pcarsApi.o pcarsApi.c
+
+${OBJECTDIR}/serialwin.o: serialwin.c 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/serialwin.o serialwin.c
+
+${OBJECTDIR}/simController.o: simController.c 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/simController.o simController.c
 
 # Subprojects
 .build-subprojects:

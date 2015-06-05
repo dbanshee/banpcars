@@ -17,14 +17,14 @@
 
 
 typedef struct pCarsContext {
-    HANDLE hFileHandle;
-    SharedMemory* shmMem;
+    HANDLE          hFileHandle;
+    SharedMemory*   shmMem;
 } pCarsContext;
 
 
 
 int initializePCarsContext(pCarsContext* pContext);
-void closePCarsContext(pCarsContext* pContext);
+void freePCarsContext(pCarsContext* pContext);
         
         
 #endif	/* PCARSAPI_H */
