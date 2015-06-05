@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include "ext/SharedMemory.h"
 
+
 #define RPM_LED_BAR_LEN 9
 #define RPM_BUFF_LEN    RPM_LED_BAR_LEN*3
 
@@ -23,8 +24,7 @@ typedef struct simCtrlContext{
 }simCtrlContext;
 
 
-
-void sendRPMS(simCtrlContext* ctx);
+int refreshMainPanel(simCtrlContext* ctx);
 
 #endif	/* SIMCONTROLLER_H */
 

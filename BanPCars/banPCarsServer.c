@@ -18,7 +18,8 @@
 #include <fcntl.h>
 
 
-#define ARDUINO_COM_PORT 5
+#define ARDUINO_COM_PORT            5
+#define MAINP_REFRESH_DELAY_MILLIS 100
 
 
 pCarsContext   pCarsCtx;
@@ -26,6 +27,14 @@ serialContext  serialCtx;
 simCtrlContext simCtx;
 
 SharedMemory   hackShmMem;
+
+void finishServer(int error){
+ 
+    freePCarsContext(&pCarsCtx);
+    freeSerialContext(&serialCtx);
+    exit(error);
+}
+
 
 void signalHandler(int sigNum){
     
@@ -40,9 +49,7 @@ void signalHandler(int sigNum){
     else
         return;
     
-    freePCarsContext(&pCarsCtx);
-    freeSerialContext(&serialCtx);
-    exit(0);
+    finishServer(0);
 }
 
 
@@ -66,14 +73,14 @@ int main(int argc, char** argv) {
     
     blog(LOG_INFO, "Estableciendo conexion con Project Cars ...");
     if(initializePCarsContext(&pCarsCtx) != 0){
-        blog(LOG_ERROR, "Error incializando contexto PCars Abortando servidor ...");
-        return -1;            
+        blog(LOG_ERROR, "Error incializando contexto PCars. Abortando servidor ...");
+        finishServer(1);
     }
     
     blog(LOG_INFO, "Estableciendo conexion con puerto COM%d ...", ARDUINO_COM_PORT);
     if(initializeSerialContext(&serialCtx, ARDUINO_COM_PORT) != 0){
-        blog(LOG_ERROR, "Error incializando contexto PCars Abortando servidor ...");
-        return -1;            
+        blog(LOG_ERROR, "Error inicializando contexto serie. Abortando servidor ...");
+        finishServer(1);
     }
     
     blog(LOG_INFO, "Inicializando Sim Controller ... ");
@@ -84,51 +91,10 @@ int main(int argc, char** argv) {
     //simCtx.pCarsSHM  = &hackShmMem;
     
     while(1){
-//        Sleep(20);
-        sendRPMS(&simCtx);
+        refreshMainPanel(&simCtx);
+        Sleep(MAINP_REFRESH_DELAY_MILLIS);
     }
 
-
-    /*
-     * Serial Windows
-     * */
-    /*
-    serialContext serialCtx;
-    memset(&serialCtx, 0, sizeof(serialCtx));
-    //Serial* SP = new Serial("\\\\.\\COM10");    // adjust as needed
-    initializeSerialContext(&serialCtx, 5);
-
-    if(!isSerialConnected(&serialCtx) == 1){
-        printf("Error Connecting\n");
-        return -1;
-    }
-        
-    char incomingData[256] = "HELP\r";			// don't forget to pre-allocate memory
-    char outcomingData[256];			// don't forget to pre-allocate memory
-    //printf("%s\n",incomingData);
-    int dataLength = 256;
-    int readResult = 0;
-    int i;
-    
-    writeSerialData(&serialCtx, incomingData, dataLength);
-    Sleep(500);
-
-    while((readResult = readSerialData(&serialCtx, outcomingData, dataLength)) > -1)
-        printf("Bytes read (%i) %s : \n", readResult, outcomingData);
-    
-//    for(i = 0; i < 5; i++){
-//        readResult = ReadData(&serialCtx, outcomingData, dataLength);
-//        Sleep(500);
-//        printf("Bytes read (%i) %s : \n", readResult, outcomingData);
-//    }
-    
-    freeSerialContext(&serialCtx);
-
-    */
-    
-    freePCarsContext(&pCarsCtx);
-    freeSerialContext(&serialCtx);
-    
-    return (EXIT_SUCCESS);
+    finishServer(0);
 }
 
