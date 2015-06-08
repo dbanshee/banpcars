@@ -34,8 +34,8 @@ typedef struct serialContext{
 
 int  initializeSerialContext(serialContext* ctx, int portName);
 void freeSerialContext(serialContext* ctx);
-int  readSerialData(serialContext* ctx, char *buffer, unsigned int nbChar);
-int  writeSerialData(serialContext* ctx, char *buffer, unsigned int nbChar);
+int  readSerialData(serialContext* ctx, void *buffer, unsigned int nbChar);
+int  writeSerialData(serialContext* ctx, void *buffer, unsigned int nbChar);
 int  isSerialConnected(serialContext* ctx);
 
 

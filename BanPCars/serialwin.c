@@ -34,7 +34,7 @@ int initializeSerialContext(serialContext* ctx, int comPortNumber)
             blog(LOG_ERROR, "No se ha podido obtener los parametros del puerto COM%d", ctx->comPortNumber);
         else
         {
-            //Define serial connection parameters for the arduino board
+//            //Define serial connection parameters for the arduino board
             dcbSerialParams.BaudRate    = CBR_9600;
             dcbSerialParams.ByteSize    = 8;
             dcbSerialParams.StopBits    = ONESTOPBIT;
@@ -43,6 +43,21 @@ int initializeSerialContext(serialContext* ctx, int comPortNumber)
             //Setting the DTR to Control_Enable ensures that the Arduino is properly
             //reset upon establishing a connection
             dcbSerialParams.fDtrControl = DTR_CONTROL_ENABLE;
+            
+            
+            //memset(&dcb,0,sizeof(dcb));
+//dcbSerialParams.BaudRate = 9600;
+//    dcbSerialParams.ByteSize = 8;
+//    dcbSerialParams.Parity = NOPARITY;
+//    dcbSerialParams.StopBits = ONESTOPBIT;
+//    dcbSerialParams.fAbortOnError = TRUE;
+//    dcbSerialParams.fOutX = FALSE;
+//    dcbSerialParams.fInX = FALSE;
+//    dcbSerialParams.fOutxCtsFlow = FALSE;
+//    dcbSerialParams.fRtsControl = FALSE;
+//    dcbSerialParams.fOutxDsrFlow = FALSE;
+//    dcbSerialParams.fDtrControl = DTR_CONTROL_DISABLE;  
+            
 
              if(!SetCommState(ctx->hSerial, &dcbSerialParams))
                 blog(LOG_ERROR, "NO se han podido establecer los parametros serie al puerto COM%d", ctx->comPortNumber);
@@ -80,7 +95,7 @@ void freeSerialContext(serialContext* ctx)
     }
 }
 
-int readSerialData(serialContext* ctx, char *buffer, unsigned int nbChar)
+int readSerialData(serialContext* ctx, void *buffer, unsigned int nbChar)
 {
     DWORD bytesRead;
     unsigned int toRead;
@@ -102,6 +117,7 @@ int readSerialData(serialContext* ctx, char *buffer, unsigned int nbChar)
         //Try to read the require number of chars, and return the number of read bytes on success
         if(ReadFile(ctx->hSerial, buffer, toRead, &bytesRead, NULL) && bytesRead != 0){
             FlushFileBuffers(ctx->hSerial);
+//            printf("Readed (%i), '%s'", bytesRead, buffer);
             return bytesRead;
         }
     }
@@ -111,21 +127,25 @@ int readSerialData(serialContext* ctx, char *buffer, unsigned int nbChar)
 
 }
 
-int writeSerialData(serialContext* ctx, char *buffer, unsigned int nbChar)
+int writeSerialData(serialContext* ctx, void *buffer, unsigned int nbChar)
 {
     DWORD bytesSend;
 
     //Try to write the buffer on the Serial port
-    if(!WriteFile(ctx->hSerial, (void *)buffer, nbChar, &bytesSend, 0))
+    if(!WriteFile(ctx->hSerial, (void *)buffer, nbChar, &bytesSend, NULL))
     {
         FlushFileBuffers(ctx->hSerial);
+//        printf("Writed (%i), '%s'", bytesSend, buffer);
         
         //In case it don't work get comm error and return false
         ClearCommError(ctx->hSerial, &ctx->errors, &ctx->status);
         return FALSE;
     }
-    else
+    else{
+//        printf("Writed (%i), '%s'", bytesSend, buffer);
         return TRUE;
+    }
+        
 }
 
 int isSerialConnected(serialContext* ctx)

@@ -9,7 +9,6 @@
 #include <stdlib.h>
 #include "logger.h"
 #include "pcarsApi.h"
-#include "serial.h"
 #include "serialwin.h"
 #include "simController.h"
 
@@ -18,15 +17,20 @@
 #include <fcntl.h>
 
 
-#define ARDUINO_COM_PORT            5
-#define MAINP_REFRESH_DELAY_MILLIS 100
+#define ARDUINO_DEFAULT_COM_PORT     7
+#define MAINP_REFRESH_DELAY_MILLIS  50
 
 
 pCarsContext   pCarsCtx;
 serialContext  serialCtx;
 simCtrlContext simCtx;
 
-SharedMemory   hackShmMem;
+// Hack
+//SharedMemory   hackShmMem;
+//#define MAX_RPMS 		5000
+//#define BASE_RPMS		1200
+//#define RANGE_MILLIS		15000
+//#define TIME_DELAY_MILLIS  	20
 
 void finishServer(int error){
  
@@ -52,8 +56,41 @@ void signalHandler(int sigNum){
     finishServer(0);
 }
 
+//------------------------
+//float evaluateFunction(float x1, float y1, float x2, float y2, float p){
+//
+//  float m, b;
+//  
+//  m = (y2 - y1) / (x2 - x1);
+//  b = y1 - ((y2 - y1)/(x2 - x1))*x1;
+//  
+//  return m*p + b;
+//  
+//}
+//
+//
+//int genRPM(int millis){
+//  if(millis <= 800)
+//    return evaluateFunction(0, 1200, 800, MAX_RPMS, millis);
+//  else if (millis > 800 && millis <= 1500)
+//    return evaluateFunction(800, 1200, 1500, MAX_RPMS, millis);
+//  else if (millis > 1500 && millis <= 3000)
+//    return evaluateFunction(1500, 1200, 3000, MAX_RPMS, millis);
+//  else if (millis > 3000 && millis <= 5000)
+//    return evaluateFunction(3000, 1200, 5000, MAX_RPMS, millis);
+//  else if (millis > 5000 && millis <= 8000)
+//    return evaluateFunction(5000, 1200, 8000, MAX_RPMS, millis);
+//  else
+//    return 5000;
+//}
+//------------------------
 
 int main(int argc, char** argv) {
+    
+    // Hack
+//    int i, j;
+//    int currentRPMs;
+//    int currentLeds;
     
     memset(&pCarsCtx,  0, sizeof(pCarsContext));
     memset(&serialCtx, 0, sizeof(serialContext));
@@ -77,8 +114,8 @@ int main(int argc, char** argv) {
         finishServer(1);
     }
     
-    blog(LOG_INFO, "Estableciendo conexion con puerto COM%d ...", ARDUINO_COM_PORT);
-    if(initializeSerialContext(&serialCtx, ARDUINO_COM_PORT) != 0){
+    blog(LOG_INFO, "Estableciendo conexion con puerto COM%d ...", ARDUINO_DEFAULT_COM_PORT);
+    if(initializeSerialContext(&serialCtx, ARDUINO_DEFAULT_COM_PORT) != 0){
         blog(LOG_ERROR, "Error inicializando contexto serie. Abortando servidor ...");
         finishServer(1);
     }
@@ -91,8 +128,26 @@ int main(int argc, char** argv) {
     //simCtx.pCarsSHM  = &hackShmMem;
     
     while(1){
+        
+        // Hack
+        /*
+        printf("Time : %d\n", genRPM(0));
+        for(i = 0; i <= RANGE_MILLIS; i = i + TIME_DELAY_MILLIS){
+
+            currentRPMs = genRPM(i);
+            //colorLeds(fd, currentRPMs, MAX_RPMS);
+            simCtx.pCarsSHM->mMaxRPM = MAX_RPMS;
+            simCtx.pCarsSHM->mRpm    = currentRPMs;
+
+            //printf("Time Tick [%d] : %d\n", i, currentRPMs);   
+
+            refreshMainPanel(&simCtx);
+            Sleep(MAINP_REFRESH_DELAY_MILLIS);
+        }
+        */
+        
         refreshMainPanel(&simCtx);
-        Sleep(MAINP_REFRESH_DELAY_MILLIS);
+        Sleep(MAINP_REFRESH_DELAY_MILLIS); 
     }
 
     finishServer(0);
