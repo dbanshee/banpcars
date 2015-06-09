@@ -17,6 +17,9 @@
 #include <fcntl.h>
 
 
+#define PCARS_CONN_RETRIES          100
+#define PCARS_CONN_DELAY_SECS         5    
+
 #define ARDUINO_DEFAULT_COM_PORT     7
 #define MAINP_REFRESH_DELAY_MILLIS  50
 
@@ -109,16 +112,25 @@ int main(int argc, char** argv) {
     
     
     blog(LOG_INFO, "Estableciendo conexion con Project Cars ...");
-    if(initializePCarsContext(&pCarsCtx) != 0){
+    int pCarsConnTry = 1;
+    while(pCarsConnTry < PCARS_CONN_RETRIES && initializePCarsContext(&pCarsCtx) != 0){
+        
+        blog(LOG_WARN, "No se ha podido establecer conexion con Project Cars. Intento [%d/%d] ...", pCarsConnTry++, PCARS_CONN_RETRIES);
+        Sleep(PCARS_CONN_DELAY_SECS*1000);
+    }
+    
+    if(pCarsConnTry >= PCARS_CONN_RETRIES){
         blog(LOG_ERROR, "Error incializando contexto PCars. Abortando servidor ...");
         finishServer(1);
     }
+    blog(LOG_INFO, "Conexion con Project Cars establecida");
     
     blog(LOG_INFO, "Estableciendo conexion con puerto COM%d ...", ARDUINO_DEFAULT_COM_PORT);
     if(initializeSerialContext(&serialCtx, ARDUINO_DEFAULT_COM_PORT) != 0){
         blog(LOG_ERROR, "Error inicializando contexto serie. Abortando servidor ...");
         finishServer(1);
     }
+    blog(LOG_INFO, "Conexion con puerto COM%d establecida", ARDUINO_DEFAULT_COM_PORT);
     
     blog(LOG_INFO, "Inicializando Sim Controller ... ");
     simCtx.pCarsSHM  = pCarsCtx.shmMem;

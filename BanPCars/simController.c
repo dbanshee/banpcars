@@ -4,12 +4,12 @@
 #include "logger.h"
 
 #define LED_RPM_NUMLEDS         12
-#define LED_RPM_START_RATIO     0.7
-#define LED_RPM_CHANGE_RATIO    0.95
+#define LED_RPM_START_RATIO     0.85
+#define LED_RPM_CHANGE_RATIO    0.98
 
 
 #define LED_BLACK 		"\x00\x00\x00"
-#define LED_WHITE 		"\xff\xff\xf"
+#define LED_WHITE 		"\xff\xff\xff"
 #define LED_RED   		"\xff\x00\x00"
 #define LED_GREEN 		"\x00\xff\x00"
 #define LED_BLUE  		"\x00\x00\xff"
@@ -37,8 +37,13 @@ int refreshLEDBar(simCtrlContext* ctx){
     memset(ledArray, 0, sizeof(pixel_t)*LED_RPM_NUMLEDS);
 
     if(rpms > maxRpms*LED_RPM_START_RATIO){
-        numLeds = round((rpms - ledsThres) / ledLen);
+        numLeds = round((rpms - ledsThres) / ledLen); //FIXME
 
+        if(numLeds > LED_RPM_NUMLEDS){
+            //blog(LOG_WARN, "Calculo de leds erroneo. numLeds = %d, Total Leds = %d, maxRpms = %d, rpms = %d", numLeds, LED_RPM_NUMLEDS, maxRpms, rpms);
+            numLeds = LED_RPM_NUMLEDS;
+        }
+        
         for(i = 0; i < numLeds; i++){
           if(i < groupLen)
             // GREEN
@@ -50,6 +55,7 @@ int refreshLEDBar(simCtrlContext* ctx){
             // BLUE
             memcpy(&(ledArray[i]), LED_BLUE,  3);
         }
+        
     }else{
         // Apagar leds
         memset(ledArray, 0, sizeof(pixel_t)*LED_RPM_NUMLEDS);

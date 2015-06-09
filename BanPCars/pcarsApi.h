@@ -23,9 +23,8 @@ typedef struct pCarsContext {
 
 
 
-int initializePCarsContext(pCarsContext* pContext);
+int  initializePCarsContext(pCarsContext* pContext);
 void freePCarsContext(pCarsContext* pContext);
-        
         
 #endif	/* PCARSAPI_H */
 
