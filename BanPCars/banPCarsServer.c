@@ -20,8 +20,8 @@
 #define PCARS_CONN_RETRIES          100
 #define PCARS_CONN_DELAY_SECS         5    
 
-#define ARDUINO_DEFAULT_COM_PORT     7
-#define MAINP_REFRESH_DELAY_MILLIS  50
+#define ARDUINO_DEFAULT_COM_PORT     4
+#define MAINP_REFRESH_DELAY_MILLIS  100
 
 
 pCarsContext   pCarsCtx;
@@ -135,6 +135,7 @@ int main(int argc, char** argv) {
     blog(LOG_INFO, "Inicializando Sim Controller ... ");
     simCtx.pCarsSHM  = pCarsCtx.shmMem;
     simCtx.serialCtx = &serialCtx;
+    blog(LOG_INFO, "Sim Controller inicializado");
     
     // Hack
     //simCtx.pCarsSHM  = &hackShmMem;
