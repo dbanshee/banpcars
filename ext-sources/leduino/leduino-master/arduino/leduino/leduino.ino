@@ -55,7 +55,8 @@ void setup() {
   }
 
   uint32_t baud = BAUD[p_baud];
-  Serial.begin(baud);
+//  Serial.begin(baud);
+Serial.begin(9600);
   
   leds.setPin(p_io);
   leds.setNumPixels(p_n);

@@ -20,7 +20,7 @@
 #define PCARS_CONN_RETRIES          100
 #define PCARS_CONN_DELAY_SECS         5    
 
-#define ARDUINO_DEFAULT_COM_PORT     4
+#define ARDUINO_DEFAULT_COM_PORT     11
 #define MAINP_REFRESH_DELAY_MILLIS  100
 
 

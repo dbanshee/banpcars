@@ -23,6 +23,7 @@
 // static pixel_t lastLedArray  [LED_RPM_NUMLEDS];
 static int lastLedOn = 0;
 static int lastSpeed = 0;
+static int lastBlink = 0;
 
 
 char* itoa (int value, char * buffer, int radix) {
@@ -51,7 +52,7 @@ int refreshLEDBar(simCtrlContext* ctx){
         if(numLeds > LED_RPM_NUMLEDS){
             //blog(LOG_WARN, "Calculo de leds erroneo. numLeds = %d, Total Leds = %d, maxRpms = %d, rpms = %d", numLeds, LED_RPM_NUMLEDS, maxRpms, rpms);
             numLeds = LED_RPM_NUMLEDS;
-        }    
+        }
     }
     
     if(lastLedOn != numLeds){
@@ -60,9 +61,13 @@ int refreshLEDBar(simCtrlContext* ctx){
         itoa(numLeds, buff, 10);
         sendSimBoardCmd(ctx->serialCtx, "L1N", buff);
     }
+
+    if(rpms < maxRpms*LED_RPM_BLINK_RATIO)
+        lastBlink = 0;
     
-    if(rpms > maxRpms*LED_RPM_BLINK_RATIO){
+    if(rpms > maxRpms*LED_RPM_BLINK_RATIO && lastBlink == 0){
         sendSimBoardCmd(ctx->serialCtx, "BLINK", "1");
+        lastBlink = 1;
     }
     
     

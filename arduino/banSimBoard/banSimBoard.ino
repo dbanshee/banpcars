@@ -81,11 +81,7 @@ void setup() {
   leds.setBrightness(50);
   clearLedArray();
   leds.show();
-  ledsA_Non  = lastLedsA_Non = 0;
-  ledsBlink = 0;
-  ledsBlinkState = 0;
-
-  
+  ledsA_Non = lastLedsA_Non = ledsBlink = ledsBlinkState = 0;
   
   
   // Pines de salida
@@ -103,15 +99,11 @@ void setup() {
   IO(LED,1);
   
   // Inicializo variables
-  for(uint8_t i=0;i<NCHAR;i++) {
-    seg1[i]=0xFF;
+  for(uint8_t i = 0; i < NCHAR; i++){
+    seg1[i]=numeros[0];
     seg1_levl[i]=NLEVL;
   }
-  
-  // Temp
-  seg1[0] = numeros[8];
-  seg1[1] = numeros[8];
-  seg1[2] = numeros[8];
+
   
   
   //------------------------------------
@@ -147,8 +139,16 @@ void setup() {
  */
 void loop() {
 
+  // Read Command. No Block
   if(readCommand()){
     executeCommand();
+  } 
+  
+  // Leds Array Refresh
+  if(ledsA_Non != lastLedsA_Non){
+    loadLedArray(ledsA_Non);
+    leds.show();
+    lastLedsA_Non = ledsA_Non;
   } 
 }
 
@@ -207,8 +207,6 @@ uint8_t cmdSet(char* v) {
   if(strncmp(v,"L1N=",4) == 0) {
     ledsA_Non = atoi(v+4);   
     ledsBlink = 0;
-    //Serial.write("(LEDSANON) : ");
-    //Serial.println(ledsA_Non);
   } else if(strncmp(v,"SEG1=",5) == 0){
     parseSegValue(seg1, atoi(v+5));
   } else if(strncmp(v,"BLINK=",6) == 0){
@@ -286,17 +284,6 @@ uint8_t current_levl = 0;
 // Interrupcion de refresco
 ISR(TIMER2_COMPA_vect) {
   
-  // Leds Array Refresh
-  if(ledsA_Non != lastLedsA_Non){
-    lastLedsA_Non = ledsA_Non;
-    
-    //Serial.println(ledsA_Non);
-    //Serial.println(lastLedsA_Non);
-    loadLedArray(ledsA_Non);
-    leds.show();
-    
-    //lastLedsA_Non = ledsA_Non; // Aqui no funciona?? Sale de la interrupcion?
-  }
   
   // Leds Blink
   if(ledsBlink && abs(millis()-lastBlinkTime) > DEFAULT_LED_BLINK_MILLIS){
@@ -309,11 +296,12 @@ ISR(TIMER2_COMPA_vect) {
        loadLedArray(0);      
        ledsBlinkState = 0;
     }
+    cli();
     leds.show();
+    sei();
   }
-   
-   
-   
+  
+     
   // 7 Segments Refresh
   IO(LED,1);
   
