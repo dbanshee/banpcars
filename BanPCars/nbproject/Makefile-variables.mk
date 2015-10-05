@@ -22,14 +22,6 @@ CND_ARTIFACT_PATH_Release=dist/Release/Cygwin_4.x-Windows/banpcars
 CND_PACKAGE_DIR_Release=dist/Release/Cygwin_4.x-Windows/package
 CND_PACKAGE_NAME_Release=banpcars.tar
 CND_PACKAGE_PATH_Release=dist/Release/Cygwin_4.x-Windows/package/banpcars.tar
-# aaa configuration
-CND_PLATFORM_aaa=Cygwin_4.x-Windows
-CND_ARTIFACT_DIR_aaa=dist/aaa/Cygwin_4.x-Windows
-CND_ARTIFACT_NAME_aaa=banpcars
-CND_ARTIFACT_PATH_aaa=dist/aaa/Cygwin_4.x-Windows/banpcars
-CND_PACKAGE_DIR_aaa=dist/aaa/Cygwin_4.x-Windows/package
-CND_PACKAGE_NAME_aaa=banpcars.tar
-CND_PACKAGE_PATH_aaa=dist/aaa/Cygwin_4.x-Windows/package/banpcars.tar
 #
 # include compiler specific variables
 #

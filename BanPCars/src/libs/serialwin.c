@@ -1,16 +1,16 @@
-#include "serialwin.h"
-#include "logger.h"
+#include "../headers/serialwin.h"
+#include "../headers/logger.h"
 #include <stdio.h>
 
-int initializeSerialContext(serialContext* ctx, int comPortNumber)
+int initializeSerialContext(serialContext* ctx)
 {
     char portName[16];
     
     memset(ctx, 0, sizeof(serialContext));
     
-    sprintf(portName, "\\\\.\\COM%d", comPortNumber);
+    sprintf(portName, "\\\\.\\COM%d", ctx->comPortNumber);
  
-    ctx->comPortNumber  = comPortNumber;
+    //ctx->comPortNumber  = comPortNumber;
     ctx->connected      = FALSE;
     ctx->hSerial        = CreateFile(   portName,
                                         GENERIC_READ | GENERIC_WRITE,
@@ -20,21 +20,18 @@ int initializeSerialContext(serialContext* ctx, int comPortNumber)
                                         FILE_ATTRIBUTE_NORMAL,
                                         NULL);
 
-    if(ctx->hSerial == INVALID_HANDLE_VALUE)
-    {
+    if(ctx->hSerial == INVALID_HANDLE_VALUE){
         if(GetLastError() == ERROR_FILE_NOT_FOUND)
             blog(LOG_ERROR, "Puerto COM '%s' no disponible.", portName);
         else
             blog(LOG_ERROR, "Undefined error.");   
-    }
-    else
-    {
+    }else{
         DCB dcbSerialParams = {0};
 
         if (!GetCommState(ctx->hSerial, &dcbSerialParams))
             blog(LOG_ERROR, "No se ha podido obtener los parametros del puerto COM%d", ctx->comPortNumber);
-        else
-        {
+        else{
+            
             dcbSerialParams.BaudRate    = CBR_9600;
             dcbSerialParams.ByteSize    = 8;
             dcbSerialParams.StopBits    = ONESTOPBIT;
@@ -46,8 +43,7 @@ int initializeSerialContext(serialContext* ctx, int comPortNumber)
 
             if(!SetCommState(ctx->hSerial, &dcbSerialParams))
                blog(LOG_ERROR, "No se han podido establecer los parametros serie al puerto COM%d", ctx->comPortNumber);
-            else
-            {
+            else{
                 //If everything went fine we're connected
                 ctx->connected = TRUE;
 
@@ -68,8 +64,7 @@ int initializeSerialContext(serialContext* ctx, int comPortNumber)
 
 void freeSerialContext(serialContext* ctx)
 {
-    if(ctx->connected)
-    {
+    if(ctx->connected){
         blog(LOG_INFO, "Liberando contexto Serial ...");
         
         ctx->connected = FALSE;
@@ -86,8 +81,7 @@ int readSerialData(serialContext* ctx, void *buffer, unsigned int nbChar)
 
     ClearCommError(ctx->hSerial, &ctx->errors, &ctx->status);
 
-    if(ctx->status.cbInQue > 0)
-    {
+    if(ctx->status.cbInQue > 0){
         if(ctx->status.cbInQue > nbChar)
             toRead = nbChar;
         else
@@ -109,15 +103,13 @@ int writeSerialData(serialContext* ctx, void *buffer, unsigned int nbChar)
 {
     DWORD bytesSend = 0;
 
-    if(!WriteFile(ctx->hSerial, (void *)buffer, nbChar, &bytesSend, NULL))
-    {
+    if(!WriteFile(ctx->hSerial, (void *)buffer, nbChar, &bytesSend, NULL)){
         blog(LOG_ERROR, "Write serial data error (to write %d bytes) (writed %d bytes) : '%s'", nbChar, bytesSend, buffer);
         FlushFileBuffers(ctx->hSerial);
         
         ClearCommError(ctx->hSerial, &ctx->errors, &ctx->status);
         return FALSE;
-    }
-    else{
+    }else{
         FlushFileBuffers(ctx->hSerial);
         
         blog(LOG_TRACE, "Write Serial Data (to write %d bytes) (writed %d bytes) : '%s'", nbChar, bytesSend, buffer);

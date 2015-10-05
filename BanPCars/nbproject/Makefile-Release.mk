@@ -35,12 +35,14 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
-	${OBJECTDIR}/banPCarsDump.o \
-	${OBJECTDIR}/banPCarsServer.o \
-	${OBJECTDIR}/logger.o \
-	${OBJECTDIR}/pcarsApi.o \
-	${OBJECTDIR}/serialwin.o \
-	${OBJECTDIR}/simController.o
+	${OBJECTDIR}/src/BanPCarsDump/banPCarsDump.o \
+	${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o \
+	${OBJECTDIR}/src/BanPCarsServer/pCarsDump.o \
+	${OBJECTDIR}/src/libs/logger.o \
+	${OBJECTDIR}/src/libs/pcarsApi.o \
+	${OBJECTDIR}/src/libs/restWS.o \
+	${OBJECTDIR}/src/libs/serialwin.o \
+	${OBJECTDIR}/src/libs/simController.o
 
 
 # C Compiler Flags
@@ -67,35 +69,45 @@ ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/banpcars.exe: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
 	${LINK.c} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/banpcars ${OBJECTFILES} ${LDLIBSOPTIONS}
 
-${OBJECTDIR}/banPCarsDump.o: banPCarsDump.c 
-	${MKDIR} -p ${OBJECTDIR}
+${OBJECTDIR}/src/BanPCarsDump/banPCarsDump.o: src/BanPCarsDump/banPCarsDump.c 
+	${MKDIR} -p ${OBJECTDIR}/src/BanPCarsDump
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/banPCarsDump.o banPCarsDump.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/BanPCarsDump/banPCarsDump.o src/BanPCarsDump/banPCarsDump.c
 
-${OBJECTDIR}/banPCarsServer.o: banPCarsServer.c 
-	${MKDIR} -p ${OBJECTDIR}
+${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o: src/BanPCarsServer/banPCarsServer.c 
+	${MKDIR} -p ${OBJECTDIR}/src/BanPCarsServer
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/banPCarsServer.o banPCarsServer.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o src/BanPCarsServer/banPCarsServer.c
 
-${OBJECTDIR}/logger.o: logger.c 
-	${MKDIR} -p ${OBJECTDIR}
+${OBJECTDIR}/src/BanPCarsServer/pCarsDump.o: src/BanPCarsServer/pCarsDump.c 
+	${MKDIR} -p ${OBJECTDIR}/src/BanPCarsServer
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/logger.o logger.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/BanPCarsServer/pCarsDump.o src/BanPCarsServer/pCarsDump.c
 
-${OBJECTDIR}/pcarsApi.o: pcarsApi.c 
-	${MKDIR} -p ${OBJECTDIR}
+${OBJECTDIR}/src/libs/logger.o: src/libs/logger.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/pcarsApi.o pcarsApi.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/logger.o src/libs/logger.c
 
-${OBJECTDIR}/serialwin.o: serialwin.c 
-	${MKDIR} -p ${OBJECTDIR}
+${OBJECTDIR}/src/libs/pcarsApi.o: src/libs/pcarsApi.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/serialwin.o serialwin.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/pcarsApi.o src/libs/pcarsApi.c
 
-${OBJECTDIR}/simController.o: simController.c 
-	${MKDIR} -p ${OBJECTDIR}
+${OBJECTDIR}/src/libs/restWS.o: src/libs/restWS.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/simController.o simController.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/restWS.o src/libs/restWS.c
+
+${OBJECTDIR}/src/libs/serialwin.o: src/libs/serialwin.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/serialwin.o src/libs/serialwin.c
+
+${OBJECTDIR}/src/libs/simController.o: src/libs/simController.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/simController.o src/libs/simController.c
 
 # Subprojects
 .build-subprojects:

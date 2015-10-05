@@ -7,7 +7,7 @@
 
 #include <stdbool.h>
 #include <windows.h>
-#include "ext/SharedMemory.h"
+#include "../../ext/SharedMemory.h"
 
 
 #ifndef PCARSAPI_H

@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include "simController.h"
-#include "logger.h"
+#include "../headers/simController.h"
+#include "../headers/logger.h"
 
 #define LED_RPM_NUMLEDS         12
 #define LED_RPM_START_RATIO     0.85

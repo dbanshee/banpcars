@@ -10,7 +10,7 @@
 
 #include "serialwin.h"
 #include <stdbool.h>
-#include "ext/SharedMemory.h"
+#include "../../ext/SharedMemory.h"
 
 
 #define RPM_LED_BAR_LEN 9
