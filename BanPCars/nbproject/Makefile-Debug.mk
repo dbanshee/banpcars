@@ -40,9 +40,12 @@ OBJECTFILES= \
 	${OBJECTDIR}/src/BanPCarsServer/pCarsDump.o \
 	${OBJECTDIR}/src/libs/logger.o \
 	${OBJECTDIR}/src/libs/pcarsApi.o \
+	${OBJECTDIR}/src/libs/pcarsSource.o \
 	${OBJECTDIR}/src/libs/restWS.o \
 	${OBJECTDIR}/src/libs/serialwin.o \
-	${OBJECTDIR}/src/libs/simController.o
+	${OBJECTDIR}/src/libs/serversocket.o \
+	${OBJECTDIR}/src/libs/simController.o \
+	${OBJECTDIR}/src/libs/stringutils.o
 
 
 # C Compiler Flags
@@ -94,6 +97,11 @@ ${OBJECTDIR}/src/libs/pcarsApi.o: src/libs/pcarsApi.c
 	${RM} "$@.d"
 	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/pcarsApi.o src/libs/pcarsApi.c
 
+${OBJECTDIR}/src/libs/pcarsSource.o: src/libs/pcarsSource.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
+	${RM} "$@.d"
+	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/pcarsSource.o src/libs/pcarsSource.c
+
 ${OBJECTDIR}/src/libs/restWS.o: src/libs/restWS.c 
 	${MKDIR} -p ${OBJECTDIR}/src/libs
 	${RM} "$@.d"
@@ -104,10 +112,20 @@ ${OBJECTDIR}/src/libs/serialwin.o: src/libs/serialwin.c
 	${RM} "$@.d"
 	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/serialwin.o src/libs/serialwin.c
 
+${OBJECTDIR}/src/libs/serversocket.o: src/libs/serversocket.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
+	${RM} "$@.d"
+	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/serversocket.o src/libs/serversocket.c
+
 ${OBJECTDIR}/src/libs/simController.o: src/libs/simController.c 
 	${MKDIR} -p ${OBJECTDIR}/src/libs
 	${RM} "$@.d"
 	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/simController.o src/libs/simController.c
+
+${OBJECTDIR}/src/libs/stringutils.o: src/libs/stringutils.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
+	${RM} "$@.d"
+	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/stringutils.o src/libs/stringutils.c
 
 # Subprojects
 .build-subprojects:

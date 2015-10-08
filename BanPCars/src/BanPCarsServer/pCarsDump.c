@@ -1,7 +1,24 @@
 #include <string.h>
-
+#include <stdio.h>
 #include "../headers/pcarsDump.h"
 #include "../headers/logger.h"
+
+void loadDefaultPCarsDumpReaderContext(pCarsDumpReaderContext* ctx){
+    memset(ctx, 0, sizeof(pCarsDumpReaderContext));
+    ctx->offsetSecs = 100;
+}
+
+void setDumpReaderFileName(pCarsDumpReaderContext* ctx, char* fileName){
+    strcpy(ctx->fileName, fileName);
+}
+
+void setDumpReaderOffSecs(pCarsDumpReaderContext* ctx, int secs){
+    ctx->offsetSecs = secs;
+}
+
+void setDumpReaderSamplingMillis(pCarsDumpReaderContext* ctx, int milis){
+    ctx->samplingMilis = milis;
+}
 
 int initializePCarsDumpReaderContext(pCarsDumpReaderContext *ctx){
    if((ctx->fileDesc = fopen(ctx->fileName, "r")) == NULL){
@@ -9,7 +26,7 @@ int initializePCarsDumpReaderContext(pCarsDumpReaderContext *ctx){
          return -1;
     }
    
-   if(reloadDumpFile(ctx) !=  0){
+   if(seekDumpFile(ctx) !=  0){
        blog(LOG_ERROR, "Error seeking file %d secs", ctx->offsetSecs);
        return -1;
    }
@@ -23,6 +40,23 @@ void freePCarsDumpReaderContext(pCarsDumpReaderContext* ctx) {
         fflush(ctx->fileDesc);
         fclose(ctx->fileDesc);
     }
+}
+
+
+void loadDefaultPCarsDumpWriterContext(pCarsDumpWriterContext* ctx){
+    memset(ctx, 0, sizeof(pCarsDumpWriterContext));
+}
+
+void setDumpWriterFileName(pCarsDumpWriterContext* ctx, char* fileName){
+    strcpy(ctx->fileName, fileName);
+}
+
+void setDumpWriterSamplingMillis(pCarsDumpWriterContext* ctx, int milis){
+    ctx->samplingMilis = milis;
+}
+
+void setDumpWriterSharedMemory(pCarsDumpWriterContext* ctx, SharedMemory* shm){
+    ctx->pCarsSHM = shm;
 }
 
 int initializePCarsDumpWriterContext(pCarsDumpWriterContext *ctx){
@@ -42,7 +76,7 @@ void freePCarsDumpWriterContext(pCarsDumpWriterContext* ctx) {
     }
 }
 
-int reloadDumpFile(pCarsDumpReaderContext *ctx) {
+int seekDumpFile(pCarsDumpReaderContext *ctx) {
     return fseek(ctx->fileDesc, sizeof(SharedMemory)* ctx->offsetSecs*1000/ctx->samplingMilis, SEEK_SET);
 }
 
@@ -52,7 +86,7 @@ int readPCarsFrame(pCarsDumpReaderContext *ctx){
         
         if(feof(ctx->fileDesc)){
             blog(LOG_TRACE, "Seeking Dump Reader file %s", ctx->fileName);
-            if(reloadDumpFile(ctx) != 0) {
+            if(seekDumpFile(ctx) != 0) {
                 blog(LOG_ERROR, "Error seeking Dumo Reader file %s", ctx->fileName);
                 return -1;
             } 

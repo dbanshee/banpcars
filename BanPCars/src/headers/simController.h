@@ -10,18 +10,24 @@
 
 #include "serialwin.h"
 #include <stdbool.h>
-#include "../../ext/SharedMemory.h"
+#include "pcarsSource.h"
 
 
 #define RPM_LED_BAR_LEN 9
 #define RPM_BUFF_LEN    RPM_LED_BAR_LEN*3
 
-typedef struct simCtrlContext{
+typedef struct simCtrlContext {
 
     serialContext* serialCtx;
-    SharedMemory*  pCarsSHM;
-    
-}simCtrlContext;
+    pCarsSourceContext* pCarsSrcCtx;
+} simCtrlContext;
+
+
+void loadDefaultSimCtrlContext(simCtrlContext* ctx);
+void setSimCtrlSerialCtx(simCtrlContext* ctx, serialContext * serialCtx);
+void setSimCtrlPCarsSource(simCtrlContext* ctx, pCarsSourceContext * pCarsSrcCtx);
+int initializetSimCtrlContext(simCtrlContext* ctx);
+void freeSimCtrlContext(simCtrlContext* ctx);
 
 
 int refreshMainPanel(simCtrlContext* ctx);

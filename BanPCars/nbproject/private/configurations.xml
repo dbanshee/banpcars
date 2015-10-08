@@ -13,6 +13,8 @@
         <gdb_interceptlist>
           <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
         </gdb_interceptlist>
+        <gdb_signals>
+        </gdb_signals>
         <gdb_options>
           <DebugOptions>
           </DebugOptions>
@@ -29,8 +31,11 @@
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 5</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -p12</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 12</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 5</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20</runcommand>
+        <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 5</runcommand>
         <rundir></rundir>
         <buildfirst>true</buildfirst>
         <console-type>1</console-type>

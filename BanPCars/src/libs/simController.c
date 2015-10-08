@@ -26,6 +26,28 @@ static int lastSpeed = 0;
 static int lastBlink = 0;
 
 
+
+void loadDefaultSimCtrlContext(simCtrlContext* ctx){
+    memset(ctx, 0, sizeof(ctx));
+}
+
+void setSimCtrlSerialCtx(simCtrlContext* ctx, serialContext * serialCtx){
+    ctx->serialCtx = serialCtx;
+}
+
+void setSimCtrlPCarsSource(simCtrlContext* ctx, pCarsSourceContext * pCarsSrcCtx){
+    ctx->pCarsSrcCtx = pCarsSrcCtx;
+}
+
+int initializetSimCtrlContext(simCtrlContext* ctx){
+    // Nothing to do
+}
+
+void freeSimCtrlContext(simCtrlContext* ctx){
+    // Nothing to do
+}
+
+
 char* itoa (int value, char * buffer, int radix) {
     if (sprintf(buffer, "%d", value)) return buffer;
     else return NULL;
@@ -37,8 +59,10 @@ int refreshLEDBar(simCtrlContext* ctx){
 
     int i;
     int groupLen        = LED_RPM_NUMLEDS/3;
-    int rpms            = ctx->pCarsSHM->mRpm;
-    int maxRpms         = ctx->pCarsSHM->mMaxRPM*LED_RPM_CHANGE_RATIO;
+    
+    // Acceso sucio directo por estructuras. TODO: acceso getters
+    int rpms            = ctx->pCarsSrcCtx->pCarsSHM->mRpm;
+    int maxRpms         = ctx->pCarsSrcCtx->pCarsSHM->mMaxRPM*LED_RPM_CHANGE_RATIO;
     double ledsThres 	= maxRpms*LED_RPM_START_RATIO;
     double ledLen    	= (maxRpms - ledsThres) / LED_RPM_NUMLEDS; 
     
@@ -78,7 +102,8 @@ int refreshLEDBar(simCtrlContext* ctx){
 void refresh8Segments(simCtrlContext* ctx){
     char buff [8];
     
-    int speed = ctx->pCarsSHM->mSpeed *3.6;
+    // Acceso sucio directo por estructuras. TODO: acceso getters
+    int speed = ctx->pCarsSrcCtx->pCarsSHM->mSpeed *3.6;
     
     if(speed != lastSpeed){
         lastSpeed = speed;
@@ -91,7 +116,7 @@ void refresh8Segments(simCtrlContext* ctx){
 
 int refreshMainPanel(simCtrlContext* ctx){
     refreshLEDBar(ctx);
-    refresh8Segments(ctx);
+//    refresh8Segments(ctx);
 }
 
 
@@ -102,7 +127,7 @@ int sendSimBoardCmd(serialContext* ctx, char* cmd, char* value) {
     
     sprintf(buff, "SET %s=%s\r", cmd, value);
     
-    blog(LOG_WARN, "Sended (%d), '%s'", strlen(buff), buff);
+    blog(LOG_TRACE, "Sended (%d), '%s'", strlen(buff), buff);
     writeSerialData(ctx, buff, strlen(buff));
     
     readed = readSerialData(ctx, buff, i);

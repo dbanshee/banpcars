@@ -9,18 +9,19 @@
 #define	RESTWS_H
 
 #include <stdbool.h>
-#include <stdio.h>
 #include "../../ext/SharedMemory.h"
+#include "../headers/serversocket.h"
+
+#define DEFAULT_REST_LISTEN_PORT 8080
 
 typedef struct restWSContext {
     int port;
     SharedMemory*  pCarsSHM;
-    
-    
-    int listenfd;
-    int clientfd;
-    
+    serverSocketContext socketCtx;
 } restWSContext;
+
+
+void setPort(int port);
 
 #endif	/* RESTWS_H */
 

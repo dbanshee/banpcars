@@ -17,6 +17,7 @@ typedef struct pCarsDumpWriterContext {
     char fileName [2048];
     FILE * fileDesc;
     SharedMemory*  pCarsSHM;
+    int samplingMilis;
 } pCarsDumpWriterContext;
 
 typedef struct pCarsDumpReaderContext {
@@ -28,13 +29,29 @@ typedef struct pCarsDumpReaderContext {
     int samplingMilis;
 } pCarsDumpReaderContext;
 
-int initializePCarsDumpWriterContext(pCarsDumpWriterContext *ctx);
+
+
+
+// Writer
+void loadDefaultPCarsDumpWriterContext(pCarsDumpWriterContext* ctx);
+void setDumpWriterFileName(pCarsDumpWriterContext* ctx, char* fileName);
+void setDumpWriterSamplingMillis(pCarsDumpWriterContext* ctx, int milis);
+void setDumpWriterSharedMemory(pCarsDumpWriterContext* ctx, SharedMemory* shm);
+int initializePCarsDumpWriterContext(pCarsDumpWriterContext* ctx);
+void freePCarsDumpWriterContext(pCarsDumpWriterContext* ctx);
+
+
+// Reader
+void loadDefaultPCarsDumpReaderContext(pCarsDumpReaderContext* ctx);
+void setDumpReaderFileName(pCarsDumpReaderContext* ctx, char* fileName);
+void setDumpReaderOffSecs(pCarsDumpReaderContext* ctx, int secs);
+void setDumpReaderSamplingMillis(pCarsDumpReaderContext* ctx, int milis);
+int initializePCarsDumpReaderContext(pCarsDumpReaderContext* ctx);
 void freePCarsDumpReaderContext(pCarsDumpReaderContext* ctx);
 
-int readPCarsFrame(pCarsDumpReaderContext *ctx);
-int writePCarsFrame(pCarsDumpWriterContext *ctx);
 
+int readPCarsFrame(pCarsDumpReaderContext* ctx);
+int writePCarsFrame(pCarsDumpWriterContext* ctx);
 
 
 #endif	/* PCARSDUMP_H */
-

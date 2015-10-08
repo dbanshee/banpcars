@@ -21,8 +21,7 @@ typedef struct pCarsContext {
     SharedMemory*   shmMem;
 } pCarsContext;
 
-
-
+void loadDefaultPCarsContext(pCarsContext* pContext);
 int  initializePCarsContext(pCarsContext* pContext);
 void freePCarsContext(pCarsContext* pContext);
         

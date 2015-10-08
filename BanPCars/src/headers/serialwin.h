@@ -30,8 +30,8 @@ typedef struct serialContext{
 
 }serialContext;
 
-
-
+void loadDefaultSerialContext(serialContext* ctx);
+void setSerialPort(serialContext* ctx, int port);
 int  initializeSerialContext(serialContext* ctx);
 void freeSerialContext(serialContext* ctx);
 int  readSerialData(serialContext* ctx, void *buffer, unsigned int nbChar);

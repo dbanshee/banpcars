@@ -2,9 +2,11 @@
 #include "../headers/logger.h"
 
 
+void loadDefaultPCarsContext(pCarsContext* pContext){
+    memset(pContext, 0, sizeof(pContext));
+}
+
 int initializePCarsContext(pCarsContext* pContext){
-    
-    memset(pContext, 0, sizeof(pCarsContext));
     
     pContext->hFileHandle   = OpenFileMapping(PAGE_READONLY, FALSE, PCARS_SHAREDMEM_FILE);
     

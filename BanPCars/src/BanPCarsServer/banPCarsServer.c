@@ -12,10 +12,11 @@
 #include "../headers/serialwin.h"
 #include "../headers/simController.h"
 #include "../headers/pcarsDump.h"
+#include "../headers/serversocket.h"
+#include "../headers/pcarsSource.h"
 
 #include <termios.h>
 #include <unistd.h>
-#include <fcntl.h>
 
 
 #define PCARS_CONN_RETRIES          100
@@ -29,8 +30,11 @@ int flagDumpWrite   = 0;
 int flagDumpRead    = 0;
 int flagSimBoard    = 0;
 
-// Contexts
+///////////////////
+// Global Contexts
+///////////////////
 pCarsContext                pCarsCtx;
+pCarsSourceContext          pCarsSrcCtx;
 serialContext               serialCtx;
 simCtrlContext              simCtx;
 pCarsDumpWriterContext      pCarsDumpWriterCtx;
@@ -38,11 +42,14 @@ pCarsDumpReaderContext      pCarsDumpReaderCtx;
 
 
 void finishServer(int error){
- 
-    freePCarsContext(&pCarsCtx);
+    
+    freeSimCtrlContext(&simCtx);
     freeSerialContext(&serialCtx);
     freePCarsDumpWriterContext(&pCarsDumpWriterCtx);
     freePCarsDumpReaderContext(&pCarsDumpReaderCtx);
+    freePCarsSourceContext(&pCarsSrcCtx);
+    freePCarsContext(&pCarsCtx);
+    
     exit(error);
 }
 
@@ -79,7 +86,7 @@ int parseArgs(int argc, char** argv){
             }
             
             i++;
-            strcpy(pCarsDumpWriterCtx.fileName, argv[i]);
+            setDumpWriterFileName(&pCarsDumpWriterCtx, argv[i]);
             
             continue;
         }
@@ -97,7 +104,7 @@ int parseArgs(int argc, char** argv){
             }
             
             i++;
-            strcpy(pCarsDumpReaderCtx.fileName, argv[i]);
+            setDumpReaderFileName(&pCarsDumpReaderCtx, argv[i]);
             
             continue;
         }
@@ -111,7 +118,7 @@ int parseArgs(int argc, char** argv){
             }
             
             i++;
-            pCarsDumpReaderCtx.offsetSecs = atoi(argv[i]);
+            setDumpReaderOffSecs(&pCarsDumpReaderCtx, atoi(argv[i]));
             
             continue;
         }
@@ -127,7 +134,7 @@ int parseArgs(int argc, char** argv){
             }
             
             i++;
-            serialCtx.comPortNumber = atoi(argv[i]);
+            setSerialPort(&serialCtx, atoi(argv[i]));
             
             continue;
         }
@@ -141,14 +148,19 @@ int parseArgs(int argc, char** argv){
 
 int main(int argc, char** argv) {
     
-    memset(&pCarsCtx,               0, sizeof(pCarsContext));
-    memset(&serialCtx,              0, sizeof(serialContext));
-    memset(&simCtx,                 0, sizeof(simCtrlContext));
-    memset(&pCarsDumpWriterCtx,     0, sizeof(pCarsDumpWriterContext));
-    memset(&pCarsDumpReaderCtx,     0, sizeof(pCarsDumpReaderContext));
+    // Load default context values
+    loadDefaultPCarsContext(&pCarsCtx);
+    loadDefaultpCarsSourceContext(&pCarsSrcCtx);
+    loadDefaultPCarsDumpReaderContext(&pCarsDumpReaderCtx);
+    loadDefaultPCarsDumpWriterContext(&pCarsDumpWriterCtx);
+    loadDefaultSerialContext(&serialCtx);
+    loadDefaultSimCtrlContext(&simCtx);
     
-    parseArgs(argc, argv);
+    // Main default values and args parse
+    setSerialPort(&serialCtx, ARDUINO_DEFAULT_COM_PORT);
+    parseArgs(argc, argv);  // Access global contexts to config initialize
     
+    // Signals callbacks
     signal(SIGTERM, signalHandler);
     signal(SIGINT,  signalHandler);
     signal(SIGQUIT, signalHandler);
@@ -160,16 +172,18 @@ int main(int argc, char** argv) {
     printf("-- Start at : %s\n", getCurrentDate());
     printf("-----------------------------------------\n\n\n");
     
-    
+    // Source Datas initialization
     if(flagDumpRead == 1) {
         blog(LOG_INFO, "Iniciando Dump Reader en %s", pCarsDumpReaderCtx.fileName);
         
-        pCarsDumpReaderCtx.samplingMilis = MAINP_REFRESH_DELAY_MILLIS;
+        setDumpReaderSamplingMillis(&pCarsDumpReaderCtx, MAINP_REFRESH_DELAY_MILLIS);
         
         if(initializePCarsDumpReaderContext(&pCarsDumpReaderCtx) != 0){
             blog(LOG_ERROR, "Error inicializando contexto PCars Dump Reader. Abortando servidor ...");
             finishServer(1);
         }
+        
+        setPCarsSourcePCarsDump(&pCarsSrcCtx, &pCarsDumpReaderCtx);
     } else {
         blog(LOG_INFO, "Estableciendo conexion con Project Cars ...");
         int pCarsConnTry = 1;
@@ -183,38 +197,42 @@ int main(int argc, char** argv) {
             blog(LOG_ERROR, "Error incializando contexto PCars. Abortando servidor ...");
             finishServer(1);
         }
+        
+        setPCarsSourcePCarsAPI(&pCarsSrcCtx, &pCarsCtx);
         blog(LOG_INFO, "Conexion con Project Cars establecida");
+    }
+    
+    
+    if(initializePCarsSourceContext(&pCarsSrcCtx) != 0){
+        blog(LOG_ERROR, "Error inicializando source de datos.");
+        finishServer(1);
     }
    
     
+    // Arduino Sim Board
     if(flagSimBoard) {
         blog(LOG_INFO, "Estableciendo conexion con puerto COM%d ...", serialCtx.comPortNumber);
         if(initializeSerialContext(&serialCtx) != 0){
             blog(LOG_ERROR, "Error inicializando contexto serie. Abortando servidor ...");
             finishServer(1);
         }
-        blog(LOG_INFO, "Conexion con puerto COM%d establecida", ARDUINO_DEFAULT_COM_PORT);
+        blog(LOG_INFO, "Conexion con puerto COM%d establecida", serialCtx.comPortNumber);
 
         blog(LOG_INFO, "Inicializando Sim Controller ... ");
         simCtx.serialCtx = &serialCtx;
         
-        if(flagDumpRead) 
-            simCtx.pCarsSHM  = &pCarsDumpReaderCtx.pCarsSHM;
-        else
-            simCtx.pCarsSHM  = pCarsCtx.shmMem;
+        // Ser Source Data
+        setSimCtrlPCarsSource(&simCtx, &pCarsSrcCtx);
         
         blog(LOG_INFO, "Sim Controller inicializado");
     }
     
-        
+    
+    // Dump Writer
     if(flagDumpWrite){    
         blog(LOG_INFO, "Iniciando Dump Writer en %s ...", pCarsDumpWriterCtx.fileName);
         
-        if(flagDumpRead)
-            pCarsDumpWriterCtx.pCarsSHM = &pCarsDumpReaderCtx.pCarsSHM;
-        else
-            pCarsDumpWriterCtx.pCarsSHM = pCarsCtx.shmMem;
-        
+        setDumpWriterSharedMemory(&pCarsDumpWriterCtx, pCarsSrcCtx.pCarsSHM);
         if(initializePCarsDumpWriterContext(&pCarsDumpWriterCtx) != 0){
             blog(LOG_ERROR, "Error inicializando contexto PCars Dump Writer. Abortando servidor ...");
             finishServer(1);
@@ -247,5 +265,6 @@ int main(int argc, char** argv) {
 
     finishServer(0);
 }
+
 
 

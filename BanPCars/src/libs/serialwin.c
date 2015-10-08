@@ -2,12 +2,25 @@
 #include "../headers/logger.h"
 #include <stdio.h>
 
-int initializeSerialContext(serialContext* ctx)
-{
-    char portName[16];
-    
+void loadDefaultSerialContext(serialContext* ctx) {
     memset(ctx, 0, sizeof(serialContext));
     
+    ctx->comPortNumber = -1;
+    ctx->connected      = 0;
+}
+
+void setSerialPort(serialContext* ctx, int port){
+    ctx->comPortNumber = port;
+}
+
+int initializeSerialContext(serialContext* ctx)
+{
+    if(ctx->comPortNumber < 0) {
+        blog(LOG_ERROR, "Puerto COM%d no valido. Setee puerto antes de inicializar.", ctx->comPortNumber);
+        return -1;
+    }
+    
+    char portName[16];
     sprintf(portName, "\\\\.\\COM%d", ctx->comPortNumber);
  
     //ctx->comPortNumber  = comPortNumber;

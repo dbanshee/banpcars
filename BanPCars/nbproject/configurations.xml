@@ -8,9 +8,12 @@
       <itemPath>src/headers/logger.h</itemPath>
       <itemPath>src/headers/pcarsApi.h</itemPath>
       <itemPath>src/headers/pcarsDump.h</itemPath>
+      <itemPath>src/headers/pcarsSource.h</itemPath>
       <itemPath>src/headers/restWS.h</itemPath>
       <itemPath>src/headers/serialwin.h</itemPath>
+      <itemPath>src/headers/serversocket.h</itemPath>
       <itemPath>src/headers/simController.h</itemPath>
+      <itemPath>src/headers/stringutils.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -33,9 +36,12 @@
         <itemPath>src/libs/logger.c</itemPath>
         <itemPath>src/BanPCarsServer/pCarsDump.c</itemPath>
         <itemPath>src/libs/pcarsApi.c</itemPath>
+        <itemPath>src/libs/pcarsSource.c</itemPath>
         <itemPath>src/libs/restWS.c</itemPath>
         <itemPath>src/libs/serialwin.c</itemPath>
+        <itemPath>src/libs/serversocket.c</itemPath>
         <itemPath>src/libs/simController.c</itemPath>
+        <itemPath>src/libs/stringutils.c</itemPath>
       </logicalFolder>
     </logicalFolder>
     <logicalFolder name="TestFiles"
@@ -80,21 +86,33 @@
       </item>
       <item path="src/headers/pcarsDump.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="src/headers/pcarsSource.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/headers/restWS.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/headers/serialwin.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="src/headers/serversocket.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/headers/simController.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/headers/stringutils.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/libs/logger.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="src/libs/pcarsApi.c" ex="false" tool="0" flavor2="0">
       </item>
+      <item path="src/libs/pcarsSource.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="src/libs/restWS.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="src/libs/serialwin.c" ex="false" tool="0" flavor2="0">
       </item>
+      <item path="src/libs/serversocket.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="src/libs/simController.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/libs/stringutils.c" ex="false" tool="0" flavor2="0">
       </item>
     </conf>
     <conf name="Release" type="1">
@@ -134,21 +152,33 @@
       </item>
       <item path="src/headers/pcarsDump.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="src/headers/pcarsSource.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/headers/restWS.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/headers/serialwin.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="src/headers/serversocket.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/headers/simController.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/headers/stringutils.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/libs/logger.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="src/libs/pcarsApi.c" ex="false" tool="0" flavor2="0">
       </item>
+      <item path="src/libs/pcarsSource.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="src/libs/restWS.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="src/libs/serialwin.c" ex="false" tool="0" flavor2="0">
       </item>
+      <item path="src/libs/serversocket.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="src/libs/simController.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/libs/stringutils.c" ex="false" tool="0" flavor2="0">
       </item>
     </conf>
   </confs>
