@@ -60,6 +60,7 @@ void setDumpWriterSharedMemory(pCarsDumpWriterContext* ctx, SharedMemory* shm){
 }
 
 int initializePCarsDumpWriterContext(pCarsDumpWriterContext *ctx){
+    // Read samplingMilis from file
    if((ctx->fileDesc = fopen(ctx->fileName, "rw+")) == NULL){
          blog(LOG_ERROR, "Error creating file %s", ctx->fileName);
          return -1;
