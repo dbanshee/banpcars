@@ -34,8 +34,10 @@
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -p12</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 12</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 5</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 7</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 7 -rest 8080</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 5</runcommand>
+        <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 7 -rest 8080</runcommand>
         <rundir></rundir>
         <buildfirst>true</buildfirst>
         <console-type>1</console-type>

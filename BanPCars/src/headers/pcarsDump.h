@@ -14,19 +14,19 @@
 
 
 typedef struct pCarsDumpWriterContext {
-    char fileName [2048];
-    FILE * fileDesc;
-    SharedMemory*  pCarsSHM;
-    int samplingMilis;
+    char            fileName [2048];
+    FILE*           fileDesc;
+    SharedMemory*   pCarsSHM;
+    int             samplingMilis;
 } pCarsDumpWriterContext;
 
 typedef struct pCarsDumpReaderContext {
-    char fileName [2048];
-    long frameCnt;
-    FILE * fileDesc;
-    SharedMemory  pCarsSHM;
-    int offsetSecs;
-    int samplingMilis;
+    char            fileName [2048];
+    long            frameCnt;
+    FILE*           fileDesc;
+    SharedMemory    pCarsSHM;
+    int             offsetSecs;
+    int             samplingMilis;
 } pCarsDumpReaderContext;
 
 

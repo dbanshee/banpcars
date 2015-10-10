@@ -14,39 +14,42 @@
 #include "../headers/pcarsDump.h"
 #include "../headers/serversocket.h"
 #include "../headers/pcarsSource.h"
+#include "../headers/restWS.h"
 
 #include <termios.h>
 #include <unistd.h>
-
+    
+#define PCARS_SERVER_VERSION "0.5a"
 
 #define PCARS_CONN_RETRIES          100
 #define PCARS_CONN_DELAY_SECS         5    
 
 #define ARDUINO_DEFAULT_COM_PORT     11
+#define RESTWS_DEFAULT_PORT        8080
 #define MAINP_REFRESH_DELAY_MILLIS  100
 
 // Flags
 int flagDumpWrite   = 0;
 int flagDumpRead    = 0;
 int flagSimBoard    = 0;
+int flagRestWS      = 0;
 
 ///////////////////
 // Global Contexts
 ///////////////////
 pCarsContext                pCarsCtx;
-pCarsSourceContext          pCarsSrcCtx;
-serialContext               serialCtx;
-simCtrlContext              simCtx;
 pCarsDumpWriterContext      pCarsDumpWriterCtx;
 pCarsDumpReaderContext      pCarsDumpReaderCtx;
-
+pCarsSourceContext          pCarsSrcCtx;
+simCtrlContext              simCtx;
+restWSContext               restWSCtx;
 
 void finishServer(int error){
     
     freeSimCtrlContext(&simCtx);
-    freeSerialContext(&serialCtx);
     freePCarsDumpWriterContext(&pCarsDumpWriterCtx);
     freePCarsDumpReaderContext(&pCarsDumpReaderCtx);
+    freeRestWSContext(&restWSCtx);
     freePCarsSourceContext(&pCarsSrcCtx);
     freePCarsContext(&pCarsCtx);
     
@@ -134,7 +137,23 @@ int parseArgs(int argc, char** argv){
             }
             
             i++;
-            setSerialPort(&serialCtx, atoi(argv[i]));
+            setSimCtrlCOMPort(&simCtx, atoi(argv[i]));
+            
+            continue;
+        }
+        
+         // -rest port
+        if(strcmp(argv[i], "-rest") == 0) {
+            
+            flagRestWS = 1;
+            
+            if(argc < i + 1){
+                blog(LOG_ERROR, "Numero incorrecto de argumentos.");
+                return -1;
+            }
+            
+            i++;
+            setRestWSPort(&restWSCtx, atoi(argv[i]));
             
             continue;
         }
@@ -145,6 +164,7 @@ int parseArgs(int argc, char** argv){
     return 0;
 }
 
+int tempRequestHandler(int desc);
 
 int main(int argc, char** argv) {
     
@@ -153,11 +173,12 @@ int main(int argc, char** argv) {
     loadDefaultpCarsSourceContext(&pCarsSrcCtx);
     loadDefaultPCarsDumpReaderContext(&pCarsDumpReaderCtx);
     loadDefaultPCarsDumpWriterContext(&pCarsDumpWriterCtx);
-    loadDefaultSerialContext(&serialCtx);
     loadDefaultSimCtrlContext(&simCtx);
+    loadDefaultRestWSContext(&restWSCtx);
     
     // Main default values and args parse
-    setSerialPort(&serialCtx, ARDUINO_DEFAULT_COM_PORT);
+    setSimCtrlCOMPort(&simCtx, ARDUINO_DEFAULT_COM_PORT);
+    setRestWSPort(&restWSCtx, RESTWS_DEFAULT_PORT);
     parseArgs(argc, argv);  // Access global contexts to config initialize
     
     // Signals callbacks
@@ -167,15 +188,16 @@ int main(int argc, char** argv) {
     signal(SIGSEGV, signalHandler);
 
     printf("-----------------------------------------\n");
-    printf("-- BanPCars Server                       \n");
-    printf("--     Banshee 2014                      \n");
+    printf("-- BanPCars Server      version: %s      \n", PCARS_SERVER_VERSION);
+    printf("--     Banshee 2015                      \n");
     printf("-- Start at : %s\n", getCurrentDate());
     printf("-----------------------------------------\n\n\n");
     
-    // Source Datas initialization
+    // Source Data initialization
     if(flagDumpRead == 1) {
         blog(LOG_INFO, "Iniciando Dump Reader en %s", pCarsDumpReaderCtx.fileName);
         
+        // Read from file
         setDumpReaderSamplingMillis(&pCarsDumpReaderCtx, MAINP_REFRESH_DELAY_MILLIS);
         
         if(initializePCarsDumpReaderContext(&pCarsDumpReaderCtx) != 0){
@@ -211,18 +233,15 @@ int main(int argc, char** argv) {
     
     // Arduino Sim Board
     if(flagSimBoard) {
-        blog(LOG_INFO, "Estableciendo conexion con puerto COM%d ...", serialCtx.comPortNumber);
-        if(initializeSerialContext(&serialCtx) != 0){
-            blog(LOG_ERROR, "Error inicializando contexto serie. Abortando servidor ...");
+        blog(LOG_INFO, "Inicializando Sim Controller en puerto COM%d ...", simCtx.comPort);
+        
+        setSimCtrlPCarsSource(&simCtx, &pCarsSrcCtx);
+        
+        // Set Source Data
+        if(initializetSimCtrlContext(&simCtx) != 0) {
+            blog(LOG_ERROR, "Error inicializado Sim Controller.  Abortando servidor ...");
             finishServer(1);
         }
-        blog(LOG_INFO, "Conexion con puerto COM%d establecida", serialCtx.comPortNumber);
-
-        blog(LOG_INFO, "Inicializando Sim Controller ... ");
-        simCtx.serialCtx = &serialCtx;
-        
-        // Ser Source Data
-        setSimCtrlPCarsSource(&simCtx, &pCarsSrcCtx);
         
         blog(LOG_INFO, "Sim Controller inicializado");
     }
@@ -236,6 +255,15 @@ int main(int argc, char** argv) {
         if(initializePCarsDumpWriterContext(&pCarsDumpWriterCtx) != 0){
             blog(LOG_ERROR, "Error inicializando contexto PCars Dump Writer. Abortando servidor ...");
             finishServer(1);
+        }
+    }
+    
+    // Rest WS
+    if(flagRestWS){
+        setRestWSSource(&restWSCtx, &pCarsSrcCtx);
+        if(initializeRestWSContext(&restWSCtx) != 0){
+            blog(LOG_ERROR, "Error inicializando Web Service Rest en puerto %d. Abortando servidor ...", restWSCtx.port);
+            finishServer(1);    
         }
     }
     
@@ -265,6 +293,3 @@ int main(int argc, char** argv) {
 
     finishServer(0);
 }
-
-
-

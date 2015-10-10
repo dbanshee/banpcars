@@ -22,11 +22,6 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <logicalFolder name="BanPCarsDump"
-                     displayName="BanPCarsDump"
-                     projectFiles="true">
-        <itemPath>src/BanPCarsDump/banPCarsDump.c</itemPath>
-      </logicalFolder>
       <logicalFolder name="BanPCarsServer"
                      displayName="BanPCarsServer"
                      projectFiles="true">
@@ -34,7 +29,7 @@
       </logicalFolder>
       <logicalFolder name="f3" displayName="libs" projectFiles="true">
         <itemPath>src/libs/logger.c</itemPath>
-        <itemPath>src/BanPCarsServer/pCarsDump.c</itemPath>
+        <itemPath>src/libs/pCarsDump.c</itemPath>
         <itemPath>src/libs/pcarsApi.c</itemPath>
         <itemPath>src/libs/pcarsSource.c</itemPath>
         <itemPath>src/libs/restWS.c</itemPath>
@@ -71,14 +66,10 @@
       </compileType>
       <item path="ext/SharedMemory.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="src/BanPCarsDump/banPCarsDump.c" ex="false" tool="0" flavor2="0">
-      </item>
       <item path="src/BanPCarsServer/banPCarsServer.c"
             ex="false"
             tool="0"
             flavor2="0">
-      </item>
-      <item path="src/BanPCarsServer/pCarsDump.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="src/headers/logger.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -99,6 +90,8 @@
       <item path="src/headers/stringutils.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/libs/logger.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/libs/pCarsDump.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="src/libs/pcarsApi.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -137,14 +130,10 @@
       </compileType>
       <item path="ext/SharedMemory.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="src/BanPCarsDump/banPCarsDump.c" ex="false" tool="0" flavor2="0">
-      </item>
       <item path="src/BanPCarsServer/banPCarsServer.c"
             ex="false"
             tool="0"
             flavor2="0">
-      </item>
-      <item path="src/BanPCarsServer/pCarsDump.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="src/headers/logger.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -165,6 +154,8 @@
       <item path="src/headers/stringutils.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/libs/logger.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/libs/pCarsDump.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="src/libs/pcarsApi.c" ex="false" tool="0" flavor2="0">
       </item>

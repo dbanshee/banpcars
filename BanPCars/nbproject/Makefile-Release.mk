@@ -35,10 +35,9 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
-	${OBJECTDIR}/src/BanPCarsDump/banPCarsDump.o \
 	${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o \
-	${OBJECTDIR}/src/BanPCarsServer/pCarsDump.o \
 	${OBJECTDIR}/src/libs/logger.o \
+	${OBJECTDIR}/src/libs/pCarsDump.o \
 	${OBJECTDIR}/src/libs/pcarsApi.o \
 	${OBJECTDIR}/src/libs/pcarsSource.o \
 	${OBJECTDIR}/src/libs/restWS.o \
@@ -72,25 +71,20 @@ ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/banpcars.exe: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
 	${LINK.c} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/banpcars ${OBJECTFILES} ${LDLIBSOPTIONS}
 
-${OBJECTDIR}/src/BanPCarsDump/banPCarsDump.o: src/BanPCarsDump/banPCarsDump.c 
-	${MKDIR} -p ${OBJECTDIR}/src/BanPCarsDump
-	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/BanPCarsDump/banPCarsDump.o src/BanPCarsDump/banPCarsDump.c
-
 ${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o: src/BanPCarsServer/banPCarsServer.c 
 	${MKDIR} -p ${OBJECTDIR}/src/BanPCarsServer
 	${RM} "$@.d"
 	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o src/BanPCarsServer/banPCarsServer.c
 
-${OBJECTDIR}/src/BanPCarsServer/pCarsDump.o: src/BanPCarsServer/pCarsDump.c 
-	${MKDIR} -p ${OBJECTDIR}/src/BanPCarsServer
-	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/BanPCarsServer/pCarsDump.o src/BanPCarsServer/pCarsDump.c
-
 ${OBJECTDIR}/src/libs/logger.o: src/libs/logger.c 
 	${MKDIR} -p ${OBJECTDIR}/src/libs
 	${RM} "$@.d"
 	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/logger.o src/libs/logger.c
+
+${OBJECTDIR}/src/libs/pCarsDump.o: src/libs/pCarsDump.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/pCarsDump.o src/libs/pCarsDump.c
 
 ${OBJECTDIR}/src/libs/pcarsApi.o: src/libs/pcarsApi.c 
 	${MKDIR} -p ${OBJECTDIR}/src/libs

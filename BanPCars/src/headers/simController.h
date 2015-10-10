@@ -11,20 +11,21 @@
 #include "serialwin.h"
 #include <stdbool.h>
 #include "pcarsSource.h"
+#include "serialwin.h"
 
 
 #define RPM_LED_BAR_LEN 9
 #define RPM_BUFF_LEN    RPM_LED_BAR_LEN*3
 
 typedef struct simCtrlContext {
-
-    serialContext* serialCtx;
+    int                 comPort;
+    serialContext       serialCtx;
     pCarsSourceContext* pCarsSrcCtx;
 } simCtrlContext;
 
 
 void loadDefaultSimCtrlContext(simCtrlContext* ctx);
-void setSimCtrlSerialCtx(simCtrlContext* ctx, serialContext * serialCtx);
+void setSimCtrlCOMPort(simCtrlContext* ctx, int comPort);
 void setSimCtrlPCarsSource(simCtrlContext* ctx, pCarsSourceContext * pCarsSrcCtx);
 int initializetSimCtrlContext(simCtrlContext* ctx);
 void freeSimCtrlContext(simCtrlContext* ctx);

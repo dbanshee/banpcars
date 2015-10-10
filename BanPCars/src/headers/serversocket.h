@@ -16,14 +16,24 @@
 
 typedef struct serverSocketContext {
     int serverPort;
-    int (*requestHandler)(int);
     int serverLoop;
     int listenfd;
     int clientfd; // Cambiar por array o lista cuando se permitan conexiones concurrentes.
+    
+    void* extCtx;
+    int (*requestHandler)(int, void*);
 } serverSocketContext;
 
 
 // Public Functions
+void loadDefaultServerSocketContext(serverSocketContext* ctx);
+void setServerSocketPort(serverSocketContext* ctx, int port);
+void setServerSocketExtContext(serverSocketContext* ctx, void* extCtx);
+void setServerSocketRequestHandler(serverSocketContext* ctx, int (*requestHandler2)(int, void*));
+int initializeServerSocketContext(serverSocketContext* ctx);
+void freeServerSocketContext(serverSocketContext* ctx);
+
+
 int     socketServerLoop(serverSocketContext *serverCtx);
 void    abortSocketServer(serverSocketContext *serverCtx);
 void    finishSocketServer(serverSocketContext *serverCtx);

@@ -31,8 +31,8 @@ void loadDefaultSimCtrlContext(simCtrlContext* ctx){
     memset(ctx, 0, sizeof(ctx));
 }
 
-void setSimCtrlSerialCtx(simCtrlContext* ctx, serialContext * serialCtx){
-    ctx->serialCtx = serialCtx;
+void setSimCtrlCOMPort(simCtrlContext* ctx, int comPort){
+    ctx->comPort = comPort;
 }
 
 void setSimCtrlPCarsSource(simCtrlContext* ctx, pCarsSourceContext * pCarsSrcCtx){
@@ -40,11 +40,21 @@ void setSimCtrlPCarsSource(simCtrlContext* ctx, pCarsSourceContext * pCarsSrcCtx
 }
 
 int initializetSimCtrlContext(simCtrlContext* ctx){
-    // Nothing to do
+    loadDefaultSerialContext(&ctx->serialCtx);
+    setSerialPort(&ctx->serialCtx, ctx->comPort);
+    
+     if(initializeSerialContext(&ctx->serialCtx) != 0){
+        blog(LOG_ERROR, "Error inicializando contexto serie. Abortando servidor ...");
+        return -1;
+    }
+    blog(LOG_INFO, "Conexion con puerto COM%d establecida", ctx->serialCtx.comPortNumber);
+    
+    return 0;
 }
 
 void freeSimCtrlContext(simCtrlContext* ctx){
-    // Nothing to do
+    sendSimBoardCmd(&ctx->serialCtx, "L1N", "0");
+    freeSerialContext(&ctx->serialCtx);
 }
 
 
@@ -68,8 +78,7 @@ int refreshLEDBar(simCtrlContext* ctx){
     
     int numLeds = 0;
     
-    //blog(LOG_TRACE, "Enviando RPMS %d", rpms);
-
+    //blog(LOG_TRACE, "Enviando RPMS %d", rpms)
     if(rpms > maxRpms*LED_RPM_START_RATIO){
         numLeds = round((rpms - ledsThres) / ledLen); //FIXME
 
@@ -83,14 +92,14 @@ int refreshLEDBar(simCtrlContext* ctx){
         lastLedOn = numLeds;
         
         itoa(numLeds, buff, 10);
-        sendSimBoardCmd(ctx->serialCtx, "L1N", buff);
+        sendSimBoardCmd(&ctx->serialCtx, "L1N", buff);
     }
 
     if(rpms < maxRpms*LED_RPM_BLINK_RATIO)
         lastBlink = 0;
     
     if(rpms > maxRpms*LED_RPM_BLINK_RATIO && lastBlink == 0){
-        sendSimBoardCmd(ctx->serialCtx, "BLINK", "1");
+        sendSimBoardCmd(&ctx->serialCtx, "BLINK", "1");
         lastBlink = 1;
     }
     
@@ -109,7 +118,7 @@ void refresh8Segments(simCtrlContext* ctx){
         lastSpeed = speed;
         
         itoa(speed, buff, 10);
-        sendSimBoardCmd(ctx->serialCtx, "SEG1", buff);
+        sendSimBoardCmd(&ctx->serialCtx, "SEG1", buff);
     }
 }
 

@@ -12,6 +12,38 @@
 #include <fcntl.h>
 
 
+void loadDefaultServerSocketContext(serverSocketContext* ctx){
+    memset(ctx, 0, sizeof(serverSocketContext));
+    ctx->serverLoop = 1;
+}
+
+void setServerSocketPort(serverSocketContext* ctx, int port){
+    ctx->serverPort = port;
+}
+
+void setServerSocketExtContext(serverSocketContext* ctx, void* extCtx){
+    ctx->extCtx = extCtx;
+}
+
+void setServerSocketRequestHandler(serverSocketContext* ctx, int (*requestHandler)(int, void*)){
+    ctx->requestHandler = requestHandler;
+}
+
+
+int initializeServerSocketContext(serverSocketContext* ctx){
+    if(ctx->serverPort < 1) {
+        blog(LOG_ERROR, "Puerto socketServer no valido. Setee puerto antes de inicializar.");
+        return -1;
+    }
+    return 0;
+}
+
+void freeServerSocketContext(serverSocketContext* ctx){
+    if(ctx->serverLoop){
+        finishSocketServer(ctx);
+    }
+}
+
 /*
  * Loop de ejecucion de escucha de conexiones.
  */
@@ -22,7 +54,7 @@ int socketServerLoop(serverSocketContext *serverCtx){
     unsigned int clientLen;
     
     blog(LOG_INFO, "Initializing Socket Server at port %d ... ", serverCtx->serverPort);
-    
+        
     // Socket initialization
     if((serverCtx->listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1){
         blog(LOG_ERROR, "Error opening socket");
@@ -69,7 +101,7 @@ int socketServerLoop(serverSocketContext *serverCtx){
             if(serverCtx->clientfd == -1)
                 blog(LOG_ERROR, "Error on accept");
             else
-                serverCtx->requestHandler(serverCtx->clientfd); // Request process
+                serverCtx->requestHandler(serverCtx->clientfd, serverCtx->extCtx); // Request process
 
             // Close client socket
             close(serverCtx->clientfd);
@@ -105,16 +137,15 @@ ssize_t serverReadBuffer(int connfd, char *buff, size_t buffSize){
     
     if(fcntl(connfd, F_GETFL) == -1){
         blog(LOG_ERROR, "Error. Input server socket is not ready.");
-        return -1;
     }else if(nread == -1){
         blog(LOG_WARN, "Empty Request.");
         buff[0] = '\0';
-        return 0;
     }else{
-        cleanLine(buff);
+        //cleanLine(buff);
         blog(LOG_DEBUG, "Client Request (%d bytes) : '%s'", nread, buff);
-        return nread;
     }
+    
+    return nread;
 }
 
 

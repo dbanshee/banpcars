@@ -16,8 +16,8 @@
 
 
 typedef struct pCarsSourceContext {
-    SharedMemory * pCarsSHM;
-    pCarsContext* pCarsCtx;
+    SharedMemory*           pCarsSHM;
+    pCarsContext*           pCarsCtx;
     pCarsDumpReaderContext* pCarsDumpCtx;
 } pCarsSourceContext;
 

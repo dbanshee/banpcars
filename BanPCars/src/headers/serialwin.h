@@ -14,21 +14,12 @@
 
 typedef struct serialContext{
     
-    int comPortNumber;
-    
-    //Serial comm handler
-    HANDLE hSerial;
-    
-    //Connection status
-    int connected;
-    
-    //Get various information about the connection
+    int     comPortNumber;
+    HANDLE  hSerial;
+    int     connected;
     COMSTAT status;
-    
-    //Keep track of last error
-    DWORD errors;
-
-}serialContext;
+    DWORD   errors;
+} serialContext;
 
 void loadDefaultSerialContext(serialContext* ctx);
 void setSerialPort(serialContext* ctx, int port);

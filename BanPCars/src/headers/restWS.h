@@ -9,19 +9,26 @@
 #define	RESTWS_H
 
 #include <stdbool.h>
+#include <pthread.h>
 #include "../../ext/SharedMemory.h"
 #include "../headers/serversocket.h"
+#include "../headers/pcarsSource.h"
 
 #define DEFAULT_REST_LISTEN_PORT 8080
 
 typedef struct restWSContext {
-    int port;
-    SharedMemory*  pCarsSHM;
+    int                 port;
     serverSocketContext socketCtx;
+    pCarsSourceContext* pCarsSrcCtx;
+    pthread_t           restWSThread;
 } restWSContext;
 
 
-void setPort(int port);
+void loadDefaultRestWSContext(restWSContext* ctx);
+void setRestWSPort(restWSContext* ctx, int port);
+void setRestWSSource(restWSContext* ctx, pCarsSourceContext* pCarsSrcCtx);
+int initializeRestWSContext(restWSContext* ctx);
+void freeRestWSContext(restWSContext* ctx);
 
 #endif	/* RESTWS_H */
 
