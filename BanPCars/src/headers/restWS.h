@@ -27,7 +27,7 @@ typedef struct restWSContext {
 void loadDefaultRestWSContext(restWSContext* ctx);
 void setRestWSPort(restWSContext* ctx, int port);
 void setRestWSSource(restWSContext* ctx, pCarsSourceContext* pCarsSrcCtx);
-int initializeRestWSContext(restWSContext* ctx);
+int  initializeRestWSContext(restWSContext* ctx);
 void freeRestWSContext(restWSContext* ctx);
 
 #endif	/* RESTWS_H */

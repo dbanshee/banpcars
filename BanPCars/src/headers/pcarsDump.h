@@ -37,7 +37,7 @@ void loadDefaultPCarsDumpWriterContext(pCarsDumpWriterContext* ctx);
 void setDumpWriterFileName(pCarsDumpWriterContext* ctx, char* fileName);
 void setDumpWriterSamplingMillis(pCarsDumpWriterContext* ctx, int milis);
 void setDumpWriterSharedMemory(pCarsDumpWriterContext* ctx, SharedMemory* shm);
-int initializePCarsDumpWriterContext(pCarsDumpWriterContext* ctx);
+int  initializePCarsDumpWriterContext(pCarsDumpWriterContext* ctx);
 void freePCarsDumpWriterContext(pCarsDumpWriterContext* ctx);
 
 
@@ -46,7 +46,7 @@ void loadDefaultPCarsDumpReaderContext(pCarsDumpReaderContext* ctx);
 void setDumpReaderFileName(pCarsDumpReaderContext* ctx, char* fileName);
 void setDumpReaderOffSecs(pCarsDumpReaderContext* ctx, int secs);
 void setDumpReaderSamplingMillis(pCarsDumpReaderContext* ctx, int milis);
-int initializePCarsDumpReaderContext(pCarsDumpReaderContext* ctx);
+int  initializePCarsDumpReaderContext(pCarsDumpReaderContext* ctx);
 void freePCarsDumpReaderContext(pCarsDumpReaderContext* ctx);
 
 

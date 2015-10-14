@@ -36,6 +36,7 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 # Object Files
 OBJECTFILES= \
 	${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o \
+	${OBJECTDIR}/src/libs/jSon.o \
 	${OBJECTDIR}/src/libs/logger.o \
 	${OBJECTDIR}/src/libs/pCarsDump.o \
 	${OBJECTDIR}/src/libs/pcarsApi.o \
@@ -75,6 +76,11 @@ ${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o: src/BanPCarsServer/banPCarsSer
 	${MKDIR} -p ${OBJECTDIR}/src/BanPCarsServer
 	${RM} "$@.d"
 	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o src/BanPCarsServer/banPCarsServer.c
+
+${OBJECTDIR}/src/libs/jSon.o: src/libs/jSon.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
+	${RM} "$@.d"
+	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/jSon.o src/libs/jSon.c
 
 ${OBJECTDIR}/src/libs/logger.o: src/libs/logger.c 
 	${MKDIR} -p ${OBJECTDIR}/src/libs

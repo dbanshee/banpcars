@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
         if(flagDumpRead){
             readPCarsFrame(&pCarsDumpReaderCtx);
             
-            blog(LOG_INFO, "Rpms : %f", pCarsDumpReaderCtx.pCarsSHM.mRpm);   
+            //blog(LOG_INFO, "Rpms : %f", pCarsDumpReaderCtx.pCarsSHM.mRpm);   
         }
         
         if(flagSimBoard){

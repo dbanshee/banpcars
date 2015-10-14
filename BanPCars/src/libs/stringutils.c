@@ -14,6 +14,21 @@ void cleanLine(char *line){
         line[(nread--)-1] = '\0';   
 }
 
+void compactLine(char* dest, char* line){    
+    int i, j;
+    
+    i = j = 0;
+    while(line[i] != '\0'){
+        if(line[i] != '\n' && line[i] != '\r' && line[i] != '\t' && line[i] != '\t'){
+            line[i] = dest[j];
+            i++;
+        }
+        j++;
+    }
+    
+    line[i] = '\0';
+}
+
 // Not Thread safe!!
 // Need to free
 char **splitLine(char *line, char *delim){

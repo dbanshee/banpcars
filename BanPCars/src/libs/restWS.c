@@ -7,19 +7,46 @@
 #include <string.h>
 
 #include "../headers/logger.h"
+#include "../headers/jSon.h"
 
-#define DEFAULT_MSG_LEN 1024
-#define MSG_DELIMITER "\r\n\r\n"
+#define DEFAULT_MSG_LEN         1024
+#define MSG_DELIMITER_WIN       "\r\n\r\n"
 
-typedef struct restMessage {
-    int     msgLen;
-    int     msgTotalSize;
-    char*   msgBuff;
-} restMessage;
+#define GET_LIST_HEADER         "GET /getfields HTTP/1.1\r\n"
+#define GET_DATA_HEADER         "GET /getdata HTTP/1.1\r\n"
+
+enum eRequestType {
+    REQUEST_TYPE_LIST_FIELDS,
+    REQUEST_TYPE_GET_DATA,
+    REQUEST_TYPE_UNKOWN
+};
+
+
+typedef struct restRequest {
+    
+    // Entrada bruta
+    int                 msgLen;
+    int                 msgBuffTotalSize;
+    char*               msgBuff;
+    
+    // Request
+    enum eRequestType   requestType;
+    char*               body; // Pointer to msgBuff area
+    
+} restRequest;
+
+typedef struct restResponse {
+    
+    int                 msgLen;
+    int                 msgBuffTotalSize;
+    char*               msgBuff;
+    
+} restResponse;
+
 
 int restRequestHandler(int connfd, restWSContext* ctx);
-int readRequest(int connfd, restMessage* msg);
-void buildResponse(restWSContext* ctx, restMessage* msg);
+int readRequest(int connfd, restRequest* msg);
+int processRequest(restWSContext* ctx, restRequest* req, restResponse* res);
 
 
 void loadDefaultRestWSContext(restWSContext* ctx){
@@ -40,7 +67,7 @@ int initializeRestWSContext(restWSContext* ctx){
     loadDefaultServerSocketContext(&ctx->socketCtx);
     setServerSocketPort(&ctx->socketCtx, ctx->port);
     setServerSocketExtContext(&ctx->socketCtx, ctx);
-    setServerSocketRequestHandler(&ctx->socketCtx, restRequestHandler);
+    setServerSocketRequestHandler(&ctx->socketCtx, (int (*)(int,  void *)) restRequestHandler);
     
     if(initializeServerSocketContext(&ctx->socketCtx) != 0){
         blog(LOG_ERROR, "Error inicializando socket para Web Service Rest");
@@ -48,7 +75,7 @@ int initializeRestWSContext(restWSContext* ctx){
     }
     
     // Rest WS Thread
-    if(pthread_create(&ctx->restWSThread, NULL, socketServerLoop, &ctx->socketCtx) != 0){
+    if(pthread_create(&ctx->restWSThread, NULL, (void * (*)(void *)) socketServerLoop, &ctx->socketCtx) != 0){
         blog(LOG_ERROR, "Error creando Thread RestWS");
         return -1;
     }
@@ -60,9 +87,15 @@ void freeRestWSContext(restWSContext* ctx){
     freeServerSocketContext(&ctx->socketCtx);
 }
 
-void freeRestMsg(restMessage* msg){
-    if(msg->msgTotalSize > 0) {
-        free(msg->msgBuff);
+void freeRestRequest(restRequest* req){
+    if(req->msgBuffTotalSize > 0) {
+        free(req->msgBuff);
+    }
+}
+
+void freeRestResponse(restResponse* res){
+    if(res->msgBuffTotalSize > 0) {
+        free(res->msgBuff);
     }
 }
 
@@ -70,54 +103,62 @@ void freeRestMsg(restMessage* msg){
 // Rest Request Callback
 //////////////////////////
 int restRequestHandler(int connfd, restWSContext* ctx) {
-    restMessage msg;
-
-    readRequest(connfd, &msg);
+    restRequest req;
+    restResponse res;
     
-    buildResponse(ctx, &msg);
-    sendResponse(connfd, msg);
+    // Read raw request and categorize request
+    readRequest(connfd, &req);
+    
+    // Process Request and produce response
+    processRequest(ctx, &req, &res);
+    
+    // Send Response
+    sendResponse(connfd, res);
 
-    freeRestMsg(&msg);
+    freeRestRequest(&req);
+    freeRestResponse(&res);
 }
 
-
-
-int readRequest(int connfd, restMessage* msg) {
+int readRequest(int connfd, restRequest* req) {
     int nread;
-    int finalMsg = 0;
-    char delim [4];
+    int finalMsg;
+    char delim[4];
+    int delimLen;
+    int i;
     
-    memset(msg, 0, sizeof(restMessage));
-    msg->msgLen = 0;
+    
+    memset(req, 0, sizeof(restRequest));
+    req->msgLen = 0;
     
     // Initial allocation
-    msg->msgLen = 0;
-    msg->msgTotalSize = DEFAULT_MSG_LEN;
-    if((msg->msgBuff = malloc(sizeof(char)*DEFAULT_MSG_LEN)) == NULL) {
+    req->msgLen = 0;
+    req->msgBuffTotalSize = DEFAULT_MSG_LEN;
+    if((req->msgBuff = malloc(sizeof(char)*DEFAULT_MSG_LEN)) == NULL) {
         blog(LOG_ERROR, "Error allocating memory for Rest message");
         return -1;
     }
     
-    
-    while(finalMsg == 0 && (nread = serverReadBuffer(connfd, &msg->msgBuff[msg->msgLen], DEFAULT_MSG_LEN/2 /* lee medio buffer */)) > 0){
-        msg->msgLen += nread;
+    delimLen = strlen(MSG_DELIMITER_WIN);
+    finalMsg = 0;
+    while(finalMsg != 2 && (nread = serverReadBuffer(connfd, &req->msgBuff[req->msgLen], DEFAULT_MSG_LEN/2 /* lee medio buffer */)) > 0){
+        req->msgLen += nread;
         
-        if(msg->msgLen >= 4){
-            memcpy(delim, &msg->msgBuff[msg->msgLen-4], sizeof(char)*4);
-            if(memcmp(delim, MSG_DELIMITER, sizeof(char)*4) == 0){
-                finalMsg = 1;
+        if(req->msgLen >= delimLen){
+            memcpy(delim, &req->msgBuff[req->msgLen-delimLen], sizeof(char)*delimLen);
+            if(memcmp(delim, MSG_DELIMITER_WIN, sizeof(char)*delimLen) == 0){
+                finalMsg++;
             }
         }
-            
+        
         // Reserva mas buffer
-        if(finalMsg == 0 && (msg->msgLen >=  msg->msgTotalSize / 2)){ 
+        if(finalMsg < 2 && (req->msgLen >=  req->msgBuffTotalSize / 2)){ 
             
-            if((msg->msgBuff = realloc(msg->msgBuff, msg->msgTotalSize+DEFAULT_MSG_LEN)) == NULL){
+            if((req->msgBuff = realloc(req->msgBuff, req->msgBuffTotalSize+DEFAULT_MSG_LEN)) == NULL){
                 blog(LOG_ERROR, "Error reallocating memory for Rest message");
                 return -1;
             }
             
-            msg->msgTotalSize += DEFAULT_MSG_LEN;
+            req->msgBuffTotalSize += DEFAULT_MSG_LEN;
         }
     }
     
@@ -125,12 +166,102 @@ int readRequest(int connfd, restMessage* msg) {
         blog(LOG_INFO, "Client conexion error");
         return -1;
     }
+    
+    
+    // Request Analysis
+    if(strlen(req->msgBuff) > strlen(GET_LIST_HEADER) && memcmp(req->msgBuff, GET_LIST_HEADER, sizeof(char)*strlen(GET_LIST_HEADER)) == 0) {
+        req->requestType = REQUEST_TYPE_LIST_FIELDS;
+    }else if(strlen(req->msgBuff) > strlen(GET_DATA_HEADER) && memcmp(req->msgBuff, GET_DATA_HEADER, sizeof(char)*strlen(GET_DATA_HEADER)) == 0) {
+        req->requestType = REQUEST_TYPE_GET_DATA;
+    }else{
+        req->requestType = REQUEST_TYPE_UNKOWN;
+    }
+    
+    // Body Analisis
+    if(req->requestType != REQUEST_TYPE_UNKOWN){
+        i = 0;
+        while(i < req->msgLen+delimLen && memcmp(&req->msgBuff[i], MSG_DELIMITER_WIN, delimLen) != 0)
+            i++;
+        
+        if(i < req->msgLen+4){
+            req->body = &req->msgBuff[i+4];
+        }
+        
+        blog(LOG_TRACE, "RestWS Request Body : '%s'", req->body);
+    }   
 }
 
-int sendResponse(int connfd, restMessage* msg) {
+
+int processRequest(restWSContext* ctx, restRequest* req, restResponse* res){
+    
+    jSonDocument jSonDoc;
+    char* s;
+    
+    
+    switch (req->requestType) {
+        case REQUEST_TYPE_LIST_FIELDS: 
+            
+            // Returns jSon with loaded data
+            if(getPCarsSourceFields(ctx->pCarsSrcCtx, &jSonDoc) == -1) {
+                blog(LOG_ERROR, "Error recuperando lista de campos de source PCars");
+                return -1;
+            }
+            
+            s = getJSonString(&jSonDoc);
+            res->msgLen             = strlen(s);
+            res->msgBuffTotalSize   = res->msgLen + 1;            
+            res->msgBuff            = malloc(sizeof(char)*res->msgLen); // TODO: Tratar error
+            strcpy(res->msgBuff, s);
+            
+            freeJSonDocument(&jSonDoc);
+            
+            break;
+            
+        case REQUEST_TYPE_GET_DATA :
+            
+            if(parseJSon(&jSonDoc, req->body) == -1){
+                // Error parsing input. No JSon
+            }
+            
+            // TODO
+            
+            break;
+            
+        case REQUEST_TYPE_UNKOWN:
+            
+            // TODO
+            
+            break;
+        default :
+            // Unkown error.
+            return -1;
+    }
+    
+    return 0;
+}
+
+
+int buildResponse(restWSContext* ctx, restRequest* msg){
+    
+    memset(msg, 0, sizeof(restRequest));
+    msg->msgBuffTotalSize = DEFAULT_MSG_LEN;
+    
+    // Initial allocation
+    msg->msgLen = 0;
+    msg->msgBuffTotalSize = DEFAULT_MSG_LEN;
+    if((msg->msgBuff = malloc(sizeof(char)*DEFAULT_MSG_LEN)) == NULL) {
+        blog(LOG_ERROR, "Error allocating memory for Rest message");
+        return -1;
+    }
+    
+    msg->msgLen = sprintf(msg->msgBuff, "RESPONSE\r\n rpms: %f, vel : %f", ctx->pCarsSrcCtx->pCarsSHM->mRpm, ctx->pCarsSrcCtx->pCarsSHM->mSpeed);
+}
+
+
+int sendResponse(int connfd, restResponse* res) {
     int nwrite;
     
-    nwrite = serverWriteBuffer(connfd, msg->msgBuff, msg->msgLen);
+    nwrite = serverWriteBuffer(connfd, res->msgBuff, res->msgLen);
     
     if(nwrite < 0 ){
         blog(LOG_ERROR, "Error sending Rest Response");
@@ -138,21 +269,4 @@ int sendResponse(int connfd, restMessage* msg) {
     }
     
     return 1;
-}
-
-
-void buildResponse(restWSContext* ctx, restMessage* msg){
-    
-    memset(msg, 0, sizeof(restMessage));
-    msg->msgTotalSize = DEFAULT_MSG_LEN;
-    
-    // Initial allocation
-    msg->msgLen = 0;
-    msg->msgTotalSize = DEFAULT_MSG_LEN;
-    if((msg->msgBuff = malloc(sizeof(char)*DEFAULT_MSG_LEN)) == NULL) {
-        blog(LOG_ERROR, "Error allocating memory for Rest message");
-//        return -1;
-    }
-    
-    msg->msgLen = sprintf(msg->msgBuff, "RESPONSE\r\n rpms: %f, vel : %f", ctx->pCarsSrcCtx->pCarsSHM->mRpm, ctx->pCarsSrcCtx->pCarsSHM->mSpeed);
 }

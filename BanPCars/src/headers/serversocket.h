@@ -29,8 +29,8 @@ typedef struct serverSocketContext {
 void loadDefaultServerSocketContext(serverSocketContext* ctx);
 void setServerSocketPort(serverSocketContext* ctx, int port);
 void setServerSocketExtContext(serverSocketContext* ctx, void* extCtx);
-void setServerSocketRequestHandler(serverSocketContext* ctx, int (*requestHandler2)(int, void*));
-int initializeServerSocketContext(serverSocketContext* ctx);
+void setServerSocketRequestHandler(serverSocketContext* ctx, int (*requestHandler)(int, void*));
+int  initializeServerSocketContext(serverSocketContext* ctx);
 void freeServerSocketContext(serverSocketContext* ctx);
 
 

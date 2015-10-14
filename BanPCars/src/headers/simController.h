@@ -27,7 +27,7 @@ typedef struct simCtrlContext {
 void loadDefaultSimCtrlContext(simCtrlContext* ctx);
 void setSimCtrlCOMPort(simCtrlContext* ctx, int comPort);
 void setSimCtrlPCarsSource(simCtrlContext* ctx, pCarsSourceContext * pCarsSrcCtx);
-int initializetSimCtrlContext(simCtrlContext* ctx);
+int  initializetSimCtrlContext(simCtrlContext* ctx);
 void freeSimCtrlContext(simCtrlContext* ctx);
 
 

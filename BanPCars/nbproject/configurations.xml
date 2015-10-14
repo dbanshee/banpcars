@@ -5,6 +5,7 @@
                    displayName="Header Files"
                    projectFiles="true">
       <itemPath>ext/SharedMemory.h</itemPath>
+      <itemPath>src/headers/jSon.h</itemPath>
       <itemPath>src/headers/logger.h</itemPath>
       <itemPath>src/headers/pcarsApi.h</itemPath>
       <itemPath>src/headers/pcarsDump.h</itemPath>
@@ -28,6 +29,7 @@
         <itemPath>src/BanPCarsServer/banPCarsServer.c</itemPath>
       </logicalFolder>
       <logicalFolder name="f3" displayName="libs" projectFiles="true">
+        <itemPath>src/libs/jSon.c</itemPath>
         <itemPath>src/libs/logger.c</itemPath>
         <itemPath>src/libs/pCarsDump.c</itemPath>
         <itemPath>src/libs/pcarsApi.c</itemPath>
@@ -71,6 +73,8 @@
             tool="0"
             flavor2="0">
       </item>
+      <item path="src/headers/jSon.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/headers/logger.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/headers/pcarsApi.h" ex="false" tool="3" flavor2="0">
@@ -88,6 +92,8 @@
       <item path="src/headers/simController.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/headers/stringutils.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/libs/jSon.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="src/libs/logger.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -135,6 +141,8 @@
             tool="0"
             flavor2="0">
       </item>
+      <item path="src/headers/jSon.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/headers/logger.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/headers/pcarsApi.h" ex="false" tool="3" flavor2="0">
@@ -152,6 +160,8 @@
       <item path="src/headers/simController.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/headers/stringutils.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/libs/jSon.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="src/libs/logger.c" ex="false" tool="0" flavor2="0">
       </item>
