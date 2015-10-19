@@ -11,6 +11,8 @@ int initializeJSonDocument(jSonDocument* doc){
     doc->root = json_object();
     doc->stackIdx = 0;
     doc->stack[doc->stackIdx] = doc->root;
+    
+    return 1;
 }
 
 void pushJSonNode(jSonDocument* doc, json_t * n){
@@ -31,9 +33,9 @@ void freeJSonDocument(jSonDocument* doc){
 }
 
 int parseJSon(jSonDocument* doc, const char* text){
-    if(doc->root != NULL){
+    
+    if(doc->root != NULL)
         freeJSonDocument(doc);
-    } 
     
     initializeJSonDocument(doc);
     
@@ -51,7 +53,6 @@ int parseJSon(jSonDocument* doc, const char* text){
 const char* getJSonString(jSonDocument* doc){
     return json_dumps(doc->root, 0);
 }
-
 
 void addJSonStringField(jSonDocument* doc, char* fieldName, char* fieldValue){
     json_object_set_new(doc->stack[doc->stackIdx], fieldName, json_string(fieldValue));
@@ -92,36 +93,40 @@ void closeJSonArray(jSonDocument* doc){
     popJSonNode(doc);
 }
 
-void addJSonArrayString(jSonDocument* doc, char* fieldValue){
+int checkStackIsArray(jSonDocument* doc){
     if(!json_is_array(doc->stack[doc->stackIdx])) {
-        blog(LOG_ERROR, "Error adding String to JSon Array. JSon Top Stack is not array");
-        return;
+        blog(LOG_ERROR, "Error adding JSon Array. JSon Top Stack is not array");
+        return -1;
     }
+    
+    return 0;
+}
+
+int addJSonArrayString(jSonDocument* doc, char* fieldValue){
+    if(checkStackIsArray(doc) == -1)
+        return -1;
+    
     json_array_append(doc->stack[doc->stackIdx], json_string(fieldValue));
 }
 
-void addJSonArrayInteger(jSonDocument* doc, int fieldValue){
-    if(!json_is_array(doc->stack[doc->stackIdx])) {
-        blog(LOG_ERROR, "Error adding Inteeger to JSon Array. JSon Top Stack is not array");
-        return;
-    }
+int addJSonArrayInteger(jSonDocument* doc, int fieldValue){
+    if(checkStackIsArray(doc) == -1)
+        return -1;
+    
     json_array_append(doc->stack[doc->stackIdx], json_integer(fieldValue));
 }
 
-void addJSonArrayFloat(jSonDocument* doc, float fieldValue){
-    if(!json_is_array(doc->stack[doc->stackIdx])) {
-        blog(LOG_ERROR, "Error adding Float to JSon Array. JSon Top Stack is not array");
-        return;
-    }
-    json_array_append(doc->stack[doc->stackIdx], json_real(fieldValue));
+int addJSonArrayFloat(jSonDocument* doc, float fieldValue){
+    if(checkStackIsArray(doc) == -1)
+        return -1;
     
+    json_array_append(doc->stack[doc->stackIdx], json_real(fieldValue));
 }
 
-void addJSonArrayBool(jSonDocument* doc, bool fieldValue){
-    if(!json_is_array(doc->stack[doc->stackIdx])) {
-        blog(LOG_ERROR, "Error adding Boolean to JSon Array. JSon Top Stack is not array");
-        return;
-    }
+int addJSonArrayBool(jSonDocument* doc, bool fieldValue){
+    if(checkStackIsArray(doc) == -1)
+        return -1;
+                
     json_array_append(doc->stack[doc->stackIdx], json_boolean(fieldValue));
 }
 

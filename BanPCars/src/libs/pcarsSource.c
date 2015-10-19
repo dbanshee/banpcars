@@ -39,7 +39,7 @@ int getPCarsSourceFields(pCarsSourceContext* ctx, jSonDocument* jSonDoc){
     for(i = 0; i < END_PCARS_FIELDS; i++){
         addJSonArrayString(jSonDoc, enumPCarsFieldsToString(i));
     }
-    closeJSonArray(jSonDoc, NULL);
+    closeJSonArray(jSonDoc);
 
     return 0;
 }

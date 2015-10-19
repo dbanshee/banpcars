@@ -5,7 +5,7 @@
 
 void loadDefaultPCarsDumpReaderContext(pCarsDumpReaderContext* ctx){
     memset(ctx, 0, sizeof(pCarsDumpReaderContext));
-    ctx->offsetSecs = 100;
+    ctx->offsetSecs = 0;
 }
 
 void setDumpReaderFileName(pCarsDumpReaderContext* ctx, char* fileName){
@@ -77,7 +77,11 @@ void freePCarsDumpWriterContext(pCarsDumpWriterContext* ctx) {
 }
 
 int seekDumpFile(pCarsDumpReaderContext *ctx) {
-    return fseek(ctx->fileDesc, sizeof(SharedMemory)* ctx->offsetSecs*1000/ctx->samplingMilis, SEEK_SET);
+    if(ctx->offsetSecs > 0)
+        return fseek(ctx->fileDesc, sizeof(SharedMemory)* ctx->offsetSecs*1000/ctx->samplingMilis, SEEK_SET);
+    else
+        return fseek(ctx->fileDesc, 0, SEEK_SET);
+            
 }
 
 int readPCarsFrame(pCarsDumpReaderContext *ctx){

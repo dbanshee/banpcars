@@ -28,6 +28,25 @@
 #define RESTWS_DEFAULT_PORT        8080
 #define MAINP_REFRESH_DELAY_MILLIS  100
 
+const char * help = " \n\
+\n\
+BanPCars Server Version : %s \n\
+\n\
+Usage: \n\
+\n\
+banpcars.exe [-r dumpReadFile] [-d startSecs] [-rest port] [-com port] \n\
+\n\
+    -r dumpReadFile : Read dumpFile instead PCars shared memory \n\
+    -d startSecs    : Only with -r option. Ignore first 'startSecs' of dumpFile \n\
+    -rest port      : Start Rest Web Service at 'port' to export data at JSON. \n\
+    -com port       : Start Arduino connection at COM 'port'. Only for BanSimBoard. \n\
+\n\
+\n\
+\n\
+Example : \n\
+    banpcars.exe -r dumpSample.dmp -d 20 -rest 8080 -com 7 \n\n\
+";
+
 // Flags
 int flagDumpWrite   = 0;
 int flagDumpRead    = 0;
@@ -168,6 +187,11 @@ int tempRequestHandler(int desc);
 
 int main(int argc, char** argv) {
     
+    if(argc < 2 || (argc == 2 && strcmp(argv[1], "-h") == 0)){
+        printf(help, PCARS_SERVER_VERSION);
+        return -1;
+    }
+    
     // Load default context values
     loadDefaultPCarsContext(&pCarsCtx);
     loadDefaultpCarsSourceContext(&pCarsSrcCtx);
@@ -179,7 +203,13 @@ int main(int argc, char** argv) {
     // Main default values and args parse
     setSimCtrlCOMPort(&simCtx, ARDUINO_DEFAULT_COM_PORT);
     setRestWSPort(&restWSCtx, RESTWS_DEFAULT_PORT);
-    parseArgs(argc, argv);  // Access global contexts to config initialize
+    
+     // Access global contexts to config initialize
+    if(parseArgs(argc, argv)){
+        printf("Bad Usage.\n\n");
+        printf(help, PCARS_SERVER_VERSION);
+        finishServer(-1);
+    }
     
     // Signals callbacks
     signal(SIGTERM, signalHandler);
@@ -261,6 +291,8 @@ int main(int argc, char** argv) {
     // Rest WS
     if(flagRestWS){
         setRestWSSource(&restWSCtx, &pCarsSrcCtx);
+        
+        blog(LOG_INFO, "Iniciando Web Service Rest en puerto %d ...", restWSCtx.port);
         if(initializeRestWSContext(&restWSCtx) != 0){
             blog(LOG_ERROR, "Error inicializando Web Service Rest en puerto %d. Abortando servidor ...", restWSCtx.port);
             finishServer(1);    
@@ -269,14 +301,13 @@ int main(int argc, char** argv) {
     
     
     // Main Loop (exit by signals)
+    blog(LOG_INFO, "BanPCars inicializado correctamente. ");
     while(1){
         
         // Check and Recover Contexts
         
         if(flagDumpRead){
-            readPCarsFrame(&pCarsDumpReaderCtx);
-            
-            //blog(LOG_INFO, "Rpms : %f", pCarsDumpReaderCtx.pCarsSHM.mRpm);   
+            readPCarsFrame(&pCarsDumpReaderCtx); 
         }
         
         if(flagSimBoard){

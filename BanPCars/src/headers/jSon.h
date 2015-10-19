@@ -30,11 +30,11 @@ void openJSonObject(jSonDocument* doc, char* objectName);
 void closeJSonObject(jSonDocument* doc);
 
 void openJSonArray(jSonDocument* doc, char* arrayName);
-void closJSonArray(jSonDocument* doc);
-void addJSonArrayString(jSonDocument* doc, char* fieldValue);
-void addJSonArrayInteger(jSonDocument* doc, int fieldValue);
-void addJSonArrayFloat(jSonDocument* doc, float fieldValue);
-void addJSonArrayBool(jSonDocument* doc, bool fieldValue);
+void closeJSonArray(jSonDocument* doc);
+int addJSonArrayString(jSonDocument* doc, char* fieldValue);
+int addJSonArrayInteger(jSonDocument* doc, int fieldValue);
+int addJSonArrayFloat(jSonDocument* doc, float fieldValue);
+int addJSonArrayBool(jSonDocument* doc, bool fieldValue);
 
 
 int getArraySize(jSonDocument* doc, char* arrayName);

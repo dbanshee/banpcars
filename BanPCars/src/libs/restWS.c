@@ -22,42 +22,44 @@
 #define GET_FIELDS_SERVICE_URL  "/getfields"
 #define GET_DATA_SERVICE_URL    "/getdata"
 
+#define JSON_ERROR_RESPONSE     "{ \"error\" }"
 
-#define CON_INFO_BUFF_LEN         1024
+#define DEFAULT_CON_INFO_BUFF_LEN  1024
 
-typedef struct connection_info_struct
+typedef struct conInfo
 {
-  int connectiontype;
-  
   char* buff;
   int buffSize;
   int buffIdx;
 
   //struct MHD_PostProcessor *postsprocessor;
-} connection_info_struct;
+} conInfo;
 
-const char *errorpage = "<html><body>This doesn't seem to be right.</body></html>";
 
-void initializeConInfo(connection_info_struct* c){
-    memset(c, 0, sizeof(connection_info_struct));
-    c->buff = malloc(sizeof(char)*CON_INFO_BUFF_LEN);
-    c->buffSize = sizeof(char)*CON_INFO_BUFF_LEN;
-    c->buffIdx = 0;
+struct MHD_Response * getFieldsHandler(restWSContext* ctx);
+struct MHD_Response * getDataHandler(restWSContext* ctx, const char* upload_data, ssize_t* upload_data_size);
+
+
+void initializeConInfo(conInfo* c){
+    memset(c, 0, sizeof(conInfo));
+    
+    c->buffSize = sizeof(char)*DEFAULT_CON_INFO_BUFF_LEN;
+    c->buffIdx  = 0;
+    
+    c->buff = malloc(c->buffSize);
     memset(c->buff, 0, c->buffSize);
 }
 
-
-void freeConInfo(connection_info_struct* c) {
+void freeConInfo(conInfo* c) {
     if(c->buff != NULL)
         free(c->buff);
 }
 
-
-void addChunk(connection_info_struct* c, const char* chunk, int chunkSize){
+void addChunk(conInfo* c, const char* chunk, int chunkSize){
     int newSize;
     
     if((c->buffSize-c->buffIdx) <= chunkSize){
-        newSize     = c->buffSize+chunkSize+CON_INFO_BUFF_LEN;
+        newSize     = c->buffSize+chunkSize+DEFAULT_CON_INFO_BUFF_LEN;
         c->buff     = realloc(c->buff, newSize);
         c->buffSize = newSize;
     }
@@ -67,7 +69,7 @@ void addChunk(connection_info_struct* c, const char* chunk, int chunkSize){
     c->buff[c->buffIdx] = '\0';
 }
 
-static int send_page (struct MHD_Connection *connection, const char *page) {
+static int sendPage(struct MHD_Connection *connection, const char *page) {
     int ret;
     struct MHD_Response *response;
 
@@ -84,8 +86,7 @@ static int send_page (struct MHD_Connection *connection, const char *page) {
     return ret;
 }
 
-struct MHD_Response * getFieldsHandler(restWSContext* ctx);
-struct MHD_Response * getDataHandler(restWSContext* ctx, const char* upload_data, ssize_t* upload_data_size);
+
 
 static int requestHandler  (void * ctx,
                             struct MHD_Connection * connection,
@@ -97,18 +98,18 @@ static int requestHandler  (void * ctx,
                             void ** con_cls) {
     
     jSonDocument jDocOut, jDocIn;
-    restWSContext* restWS = ctx;
     int response;
+    restWSContext* restWS = ctx;
 
     if (*con_cls == NULL){
         
         // Inicializacion de estructura para recivir el cuerpo de la peticion
-        struct connection_info_struct *con_info;
+        conInfo * cInfo;
         
-        if((con_info = malloc (sizeof (struct connection_info_struct))) == NULL)
+        if((cInfo = malloc (sizeof (struct conInfo))) == NULL)
             return MHD_NO;
         
-        initializeConInfo(con_info);
+        initializeConInfo(cInfo);
         
         /* 
          * Manera correcta de procesar los chunks de una peticion POST
@@ -127,7 +128,7 @@ static int requestHandler  (void * ctx,
             }
         */
 
-        *con_cls = (void *) con_info;
+        *con_cls = (void *) cInfo;
         return MHD_YES;
     }
     
@@ -135,13 +136,18 @@ static int requestHandler  (void * ctx,
     if (strcmp (method, GET_STRING) == 0 && strcmp(url, GET_FIELDS_SERVICE_URL) == 0){
         
         initializeJSonDocument(&jDocOut);
-        getFieldsResponse(restWS, &jDocOut);
-        response = send_page (connection, getJSonString(&jDocOut));
+        if(getFieldsResponse(restWS, &jDocOut) == -1){
+            blog(LOG_ERROR, "Error procesing RestWS getfields Response");
+            freeJSonDocument(&jDocOut);
+            return MHD_NO;
+        }
+        
+        response = sendPage(connection, getJSonString(&jDocOut));
         freeJSonDocument(&jDocOut);
         
     } else if(strcmp (method, POST_STRING) == 0 && strcmp(url, GET_DATA_SERVICE_URL) == 0){
 
-        struct connection_info_struct *con_info = *con_cls;
+        conInfo* con_info = *con_cls;
 
         if (*upload_data_size != 0){
             
@@ -155,6 +161,7 @@ static int requestHandler  (void * ctx,
             return MHD_YES;    
         }
         else{
+            
             /* HARD DEBUG
                 printf(">>>>>>  Received final chunk(%d), >%s<\n", *upload_data_size, upload_data);
                 printf(">>>>>>> buff(%d, %d) : >'%s'<\n", con_info->buffIdx, con_info->buffSize, con_info->buff);
@@ -166,16 +173,20 @@ static int requestHandler  (void * ctx,
             freeConInfo(con_info);
          
             initializeJSonDocument(&jDocOut);
-            getDataResponse(restWS, &jDocIn, &jDocOut);
+            if(getDataResponse(restWS, &jDocIn, &jDocOut) == -1){
+                blog(LOG_ERROR, "Error procesing RestWS getdata Response");
+                freeJSonDocument(&jDocOut);
+                return MHD_NO;
+            }
             
             //response = send_page(connection, errorpage);
-            response = send_page(connection, getJSonString(&jDocOut));
+            response = sendPage(connection, getJSonString(&jDocOut));
+            freeJSonDocument(&jDocOut);
         }   
     }
     else{
-        response = send_page(connection, errorpage);
+        response = sendPage(connection, JSON_ERROR_RESPONSE);
     }
-
     
     *con_cls = NULL;
     return response;
@@ -228,11 +239,9 @@ int getFieldsResponse(restWSContext* ctx, jSonDocument* jdoc){
 }
 
 int getDataResponse(restWSContext* ctx, jSonDocument* in, jSonDocument* out){
-    int i;
-    int nFields;
-    int dataFields[END_PCARS_FIELDS-1];
+    int i, idx, nFields;
     const char* fieldName;
-    int idx;
+    int dataFields[END_PCARS_FIELDS-1];
     
     if((nFields = getArraySize(in, "fields")) == -1){
         blog(LOG_ERROR, "Request getdata has no 'fields' array");
@@ -250,7 +259,8 @@ int getDataResponse(restWSContext* ctx, jSonDocument* in, jSonDocument* out){
         }
     }
     
-    getPCarsData(ctx->pCarsSrcCtx, dataFields, out);
+    if(getPCarsData(ctx->pCarsSrcCtx, dataFields, out) == -1)
+        return -1;
     
     return 0;
 }
