@@ -65,6 +65,25 @@
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
       <compileType>
+        <cTool>
+          <incDir>
+            <pElem>../ext-sources/libmicrohttpd-0.9.38/libmicrohttpd-0.9.38/src/include</pElem>
+            <pElem>../ext-sources/jansson-2.7/src</pElem>
+          </incDir>
+          <incFile>
+            <pElem>../ext-sources/jansson-2.7/src/jansson.h</pElem>
+          </incFile>
+        </cTool>
+        <linkerTool>
+          <linkerAddLib>
+            <pElem>../ext-sources/libmicrohttpd-0.9.38/libmicrohttpd-0.9.38/src/microhttpd/.libs</pElem>
+            <pElem>../ext-sources/jansson-2.7/src/.libs</pElem>
+          </linkerAddLib>
+          <linkerLibItems>
+            <linkerLibLibItem>microhttpd</linkerLibLibItem>
+            <linkerLibLibItem>cygjansson-4</linkerLibLibItem>
+          </linkerLibItems>
+        </linkerTool>
       </compileType>
       <item path="ext/SharedMemory.h" ex="false" tool="3" flavor2="0">
       </item>

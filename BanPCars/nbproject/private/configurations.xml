@@ -26,18 +26,18 @@
       </nativedebugger>
       <runprofile version="9">
         <runcommandpicklist>
-          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 5</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -p12</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 12</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 5</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 7</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -com 7 </runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -com 7</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 7 -rest 8080</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -rest 8080</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 7 -rest 8080</runcommand>
+        <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -rest 8080</runcommand>
         <rundir></rundir>
         <buildfirst>true</buildfirst>
         <terminal-type>0</terminal-type>

@@ -5,188 +5,163 @@
 #include <string.h>
 
 
-#define DEFAULT_BUFF_LEN 1024
-
 int initializeJSonDocument(jSonDocument* doc){    
     memset(doc, 0, sizeof(jSonDocument));
     
-    doc->closedDoc      = false;
-    doc->nOpenObjects   = doc->nOpenArrays = 0;
-    
-    doc->buffLen = 0;
-    doc->buffBuffTotalSize = DEFAULT_BUFF_LEN;
-    if((doc->buff = malloc(sizeof(char)*DEFAULT_BUFF_LEN)) == NULL) {
-        blog(LOG_ERROR, "Error allocating memory for Rest message");
-        return -1;
-    }
-    
-    // Init Document
-    doc->buffLen = sprintf(doc->buff, "{ ");
+    doc->root = json_object();
+    doc->stackIdx = 0;
+    doc->stack[doc->stackIdx] = doc->root;
 }
 
-int extendDocument(jSonDocument* doc) {
-    if(doc->buffLen >=  doc->buffBuffTotalSize / 2){ 
-        if((doc->buff = realloc(doc->buff, doc->buffBuffTotalSize+DEFAULT_BUFF_LEN)) == NULL){
-            blog(LOG_ERROR, "Error reallocating memory for Rest message");
-            return -1;
-        }
-        doc->buffBuffTotalSize += DEFAULT_BUFF_LEN;
+void pushJSonNode(jSonDocument* doc, json_t * n){
+    if(doc->stackIdx < JSON_STACK_SIZE)
+        doc->stack[++doc->stackIdx] = n; // Controlar maximo
+}
+
+void popJSonNode(jSonDocument* doc){
+    if(doc->stackIdx > 0){
+        doc->stack[doc->stackIdx] = NULL;
+        doc->stackIdx--;
     }
 }
 
 void freeJSonDocument(jSonDocument* doc){
-    free(doc->buff);
+    if(doc->root != NULL) 
+        json_decref(doc->root);
 }
 
-int parseJSon(jSonDocument* doc, char* src){
+int parseJSon(jSonDocument* doc, const char* text){
+    if(doc->root != NULL){
+        freeJSonDocument(doc);
+    } 
     
+    initializeJSonDocument(doc);
+    
+    doc->root = json_loads(text, 0, &doc->error);   
+    
+    if(doc->root == NULL){
+        blog(LOG_ERROR, "Error building JSon for text %s on line %d: %s", text, doc->error.line, doc->error.text);
+        fflush(stdout);
+        return -1;
+    }
+    
+    return 1;
 }
 
-char* getJSonString(jSonDocument* doc){
-    return doc->buff;
+const char* getJSonString(jSonDocument* doc){
+    return json_dumps(doc->root, 0);
 }
 
 
 void addJSonStringField(jSonDocument* doc, char* fieldName, char* fieldValue){
-    int len;
-    
-    extendDocument(doc);
-    len = sprintf(&doc->buff[doc->buffLen], "%s: \"%s\", ", fieldName, fieldValue);
-    doc->buffLen += len;
+    json_object_set_new(doc->stack[doc->stackIdx], fieldName, json_string(fieldValue));
 }
 
 void addJSonIntegerField(jSonDocument* doc, char* fieldName, int fieldValue){
-    int len;
-    
-    extendDocument(doc);
-    len = sprintf(&doc->buff[doc->buffLen], "%s: %d, ", fieldName, fieldValue);
-    doc->buffLen += len;
-    
+    json_object_set_new(doc->stack[doc->stackIdx], fieldName, json_integer(fieldValue));
 }
 
 void addJSonFloatField(jSonDocument* doc, char* fieldName, float fieldValue) {
-    int len;
-    
-    extendDocument(doc);
-    len = sprintf(&doc->buff[doc->buffLen], "%s: %f, ", fieldName, fieldValue);
-    doc->buffLen += len;
+    json_object_set_new(doc->stack[doc->stackIdx], fieldName, json_real(fieldValue));
 }
 
 void addJSonBoolField(jSonDocument* doc, char* fieldName, bool fieldValue){
-    int len;
-    
-    extendDocument(doc);
-    if(fieldValue)
-        len = sprintf(&doc->buff[doc->buffLen], "%s: true, ", fieldName);
-    else
-        len = sprintf(&doc->buff[doc->buffLen], "%s: false, ", fieldName);
-    
-    doc->buffLen += len;
+    json_object_set_new(doc->stack[doc->stackIdx], fieldName, json_boolean(fieldValue));
 }
 
 void openJSonObject(jSonDocument* doc, char* objectName){
-    int len;
+    json_t* obj = json_object();
     
-    extendDocument(doc);
-    
-    if(objectName == NULL)
-        len = sprintf(&doc->buff[doc->buffLen], " - { ");
-    else
-        len = sprintf(&doc->buff[doc->buffLen], " - %s: { ", objectName);
-    
-    doc->buffLen += len;
-    doc->nOpenObjects++;
+    json_object_set(doc->stack[doc->stackIdx], objectName, obj);
+    pushJSonNode(doc, obj);
 }
 
 void closeJSonObject(jSonDocument* doc){
-    int len;
-    
-    extendDocument(doc);
-    
-    if(doc->buffLen >= 2 && memcmp(&doc->buff[doc->buffLen-2], ",", 1) == 0){
-        doc->buff[doc->buffLen-2] = '\0';
-        doc->buffLen = doc->buffLen - 2;
-    }
-    
-    len = sprintf(&doc->buff[doc->buffLen], " } ");
-    doc->buffLen += len;
-    doc->nOpenObjects--;
+    popJSonNode(doc);
 }
 
 void openJSonArray(jSonDocument* doc, char* arrayName){
-    int len;
+    json_t* ar = json_array();
     
-    extendDocument(doc);
+    json_object_set(doc->stack[doc->stackIdx], arrayName, ar);
+    pushJSonNode(doc, ar);
     
-    if(arrayName == NULL)
-        len = sprintf(&doc->buff[doc->buffLen], " - [ ");
-    else
-        len = sprintf(&doc->buff[doc->buffLen], " - %s: [ ", arrayName);
-    
-    doc->buffLen += len;
-    doc->nOpenArrays++;
 }
 
 void closeJSonArray(jSonDocument* doc){
-    int len;
-    
-    extendDocument(doc);
-    
-    if(doc->buffLen >= 2 && memcmp(&doc->buff[doc->buffLen-2], ",", 1) == 0){
-        doc->buff[doc->buffLen-2] = '\0';
-        doc->buffLen = doc->buffLen - 2;
-    }
-    
-    len = sprintf(&doc->buff[doc->buffLen], " ] ");
-    doc->buffLen += len;
-    doc->nOpenArrays--;
+    popJSonNode(doc);
 }
 
 void addJSonArrayString(jSonDocument* doc, char* fieldValue){
-    int len;
-    
-    extendDocument(doc);
-    len = sprintf(&doc->buff[doc->buffLen], "%s , ", fieldValue);
-    doc->buffLen += len;
+    if(!json_is_array(doc->stack[doc->stackIdx])) {
+        blog(LOG_ERROR, "Error adding String to JSon Array. JSon Top Stack is not array");
+        return;
+    }
+    json_array_append(doc->stack[doc->stackIdx], json_string(fieldValue));
 }
 
 void addJSonArrayInteger(jSonDocument* doc, int fieldValue){
-    int len;
-    
-    extendDocument(doc);
-    len = sprintf(&doc->buff[doc->buffLen], "%d, ", fieldValue);
-    doc->buffLen += len;
-}
-
-void addArrayJSonFloat(jSonDocument* doc, float fieldValue){
-    int len;
-    
-    extendDocument(doc);
-    len = sprintf(&doc->buff[doc->buffLen], "%f, ", fieldValue);
-    doc->buffLen += len;
-    
-}
-
-void addArrayJSonBool(jSonDocument* doc, bool fieldValue){
-    int len;
-    
-    extendDocument(doc);
-    
-    if(fieldValue)
-        len = sprintf(&doc->buff[doc->buffLen], "true, ");
-    else
-        len = sprintf(&doc->buff[doc->buffLen], "false, ");
-    
-    doc->buffLen += len;
-}
-
-void endJSonDocument(jSonDocument* doc){
-    extendDocument(doc);
-    
-    if(doc->buffLen >= 2 && memcmp(&doc->buff[doc->buffLen-2], ",", 1) == 0){
-        doc->buff[doc->buffLen-2] = '\0';
-        doc->buffLen = doc->buffLen - 2;
+    if(!json_is_array(doc->stack[doc->stackIdx])) {
+        blog(LOG_ERROR, "Error adding Inteeger to JSon Array. JSon Top Stack is not array");
+        return;
     }
-    strcpy(&doc->buff[doc->buffLen], " }");
-    doc->buffLen++;
+    json_array_append(doc->stack[doc->stackIdx], json_integer(fieldValue));
+}
+
+void addJSonArrayFloat(jSonDocument* doc, float fieldValue){
+    if(!json_is_array(doc->stack[doc->stackIdx])) {
+        blog(LOG_ERROR, "Error adding Float to JSon Array. JSon Top Stack is not array");
+        return;
+    }
+    json_array_append(doc->stack[doc->stackIdx], json_real(fieldValue));
+    
+}
+
+void addJSonArrayBool(jSonDocument* doc, bool fieldValue){
+    if(!json_is_array(doc->stack[doc->stackIdx])) {
+        blog(LOG_ERROR, "Error adding Boolean to JSon Array. JSon Top Stack is not array");
+        return;
+    }
+    json_array_append(doc->stack[doc->stackIdx], json_boolean(fieldValue));
+}
+
+json_t* getArray(jSonDocument* doc, char* arrayName){
+    json_t* arr  = json_object_get(doc->root, arrayName);
+    
+    if(arr == NULL){
+        blog(LOG_ERROR, "Array '%s' not exists in document", arrayName);
+        return NULL;
+    }
+    
+    if(!json_is_array(arr))
+    {
+        blog(LOG_ERROR, "Elem '%s' is not an array in document", arrayName);
+        return NULL;
+    }
+    
+    return arr;
+}
+
+int getArraySize(jSonDocument* doc, char* arrayName){
+    json_t* arr = getArray(doc, arrayName);
+    
+    if(arr == NULL)
+        return -1;
+    else
+        return json_array_size(arr);
+}
+
+const char* getArrayStringElem(jSonDocument* doc, char* arrayName, int nelem){
+    json_t* arr;
+    json_t* elem;
+    
+    if((arr = getArray(doc, arrayName)) == NULL || nelem > json_array_size(arr))
+        return NULL;
+    else{
+        elem = json_array_get(arr, nelem);
+        if(!json_is_string(elem)) 
+            return NULL;
+        else
+            return json_string_value(elem);
+    }
 }

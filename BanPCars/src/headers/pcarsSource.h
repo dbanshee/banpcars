@@ -147,7 +147,7 @@ enum PCARS_FIELDS {
     END_PCARS_FIELDS
 } PCARS_FIELDS;
 
-int   enumPCarsFieldsFromString(char *s);
+int   enumPCarsFieldsFromString(const char *s);
 char* enumPCarsFieldsToString(int e);
 
 

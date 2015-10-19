@@ -10,43 +10,176 @@
 #include "../headers/jSon.h"
 
 #define DEFAULT_MSG_LEN         1024
-#define MSG_DELIMITER_WIN       "\r\n\r\n"
 
-#define GET_LIST_HEADER         "GET /getfields HTTP/1.1\r\n"
-#define GET_DATA_HEADER         "GET /getdata HTTP/1.1\r\n"
-
-enum eRequestType {
-    REQUEST_TYPE_LIST_FIELDS,
-    REQUEST_TYPE_GET_DATA,
-    REQUEST_TYPE_UNKOWN
-};
+// HTTP REQUESTS
+#define GET_STRING    "GET"
+#define POST_STRING   "POST"
+#define GET           0
+#define POST          1
 
 
-typedef struct restRequest {
+// RESTWS SERVICES
+#define GET_FIELDS_SERVICE_URL  "/getfields"
+#define GET_DATA_SERVICE_URL    "/getdata"
+
+
+#define CON_INFO_BUFF_LEN         1024
+
+typedef struct connection_info_struct
+{
+  int connectiontype;
+  
+  char* buff;
+  int buffSize;
+  int buffIdx;
+
+  //struct MHD_PostProcessor *postsprocessor;
+} connection_info_struct;
+
+const char *errorpage = "<html><body>This doesn't seem to be right.</body></html>";
+
+void initializeConInfo(connection_info_struct* c){
+    memset(c, 0, sizeof(connection_info_struct));
+    c->buff = malloc(sizeof(char)*CON_INFO_BUFF_LEN);
+    c->buffSize = sizeof(char)*CON_INFO_BUFF_LEN;
+    c->buffIdx = 0;
+    memset(c->buff, 0, c->buffSize);
+}
+
+
+void freeConInfo(connection_info_struct* c) {
+    if(c->buff != NULL)
+        free(c->buff);
+}
+
+
+void addChunk(connection_info_struct* c, const char* chunk, int chunkSize){
+    int newSize;
     
-    // Entrada bruta
-    int                 msgLen;
-    int                 msgBuffTotalSize;
-    char*               msgBuff;
+    if((c->buffSize-c->buffIdx) <= chunkSize){
+        newSize     = c->buffSize+chunkSize+CON_INFO_BUFF_LEN;
+        c->buff     = realloc(c->buff, newSize);
+        c->buffSize = newSize;
+    }
     
-    // Request
-    enum eRequestType   requestType;
-    char*               body; // Pointer to msgBuff area
-    
-} restRequest;
+    memcpy(&c->buff[c->buffIdx], chunk, chunkSize);
+    c->buffIdx += chunkSize;
+    c->buff[c->buffIdx] = '\0';
+}
 
-typedef struct restResponse {
-    
-    int                 msgLen;
-    int                 msgBuffTotalSize;
-    char*               msgBuff;
-    
-} restResponse;
+static int send_page (struct MHD_Connection *connection, const char *page) {
+    int ret;
+    struct MHD_Response *response;
 
+    response = MHD_create_response_from_buffer (strlen (page), (void *) page, MHD_RESPMEM_PERSISTENT);
+    
+    MHD_add_response_header (response, "Content-Type", "application/json");
+    
+    if (!response)
+        return MHD_NO;
 
-int restRequestHandler(int connfd, restWSContext* ctx);
-int readRequest(int connfd, restRequest* msg);
-int processRequest(restWSContext* ctx, restRequest* req, restResponse* res);
+    ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
+    MHD_destroy_response (response);
+
+    return ret;
+}
+
+struct MHD_Response * getFieldsHandler(restWSContext* ctx);
+struct MHD_Response * getDataHandler(restWSContext* ctx, const char* upload_data, ssize_t* upload_data_size);
+
+static int requestHandler  (void * ctx,
+                            struct MHD_Connection * connection,
+                            const char * url,
+                            const char * method,
+                            const char * version,
+                            const char * upload_data,
+                            size_t * upload_data_size,
+                            void ** con_cls) {
+    
+    jSonDocument jDocOut, jDocIn;
+    restWSContext* restWS = ctx;
+    int response;
+
+    if (*con_cls == NULL){
+        
+        // Inicializacion de estructura para recivir el cuerpo de la peticion
+        struct connection_info_struct *con_info;
+        
+        if((con_info = malloc (sizeof (struct connection_info_struct))) == NULL)
+            return MHD_NO;
+        
+        initializeConInfo(con_info);
+        
+        /* 
+         * Manera correcta de procesar los chunks de una peticion POST
+         * Falla al crear un processor con datos JSON
+         * 
+            if (0 == strcmp (method, POST_STRING)){
+                //MHD_set_connection_value ???
+                con_info->postsprocessor =
+                  MHD_create_post_processor (connection, POSTBUFFERSIZE,
+                                             iterate_post, (void *) con_info);
+
+                if (NULL == con_info->postsprocessor){
+                    free (con_info);
+                    return MHD_NO;
+                }
+            }
+        */
+
+        *con_cls = (void *) con_info;
+        return MHD_YES;
+    }
+    
+    
+    if (strcmp (method, GET_STRING) == 0 && strcmp(url, GET_FIELDS_SERVICE_URL) == 0){
+        
+        initializeJSonDocument(&jDocOut);
+        getFieldsResponse(restWS, &jDocOut);
+        response = send_page (connection, getJSonString(&jDocOut));
+        freeJSonDocument(&jDocOut);
+        
+    } else if(strcmp (method, POST_STRING) == 0 && strcmp(url, GET_DATA_SERVICE_URL) == 0){
+
+        struct connection_info_struct *con_info = *con_cls;
+
+        if (*upload_data_size != 0){
+            
+            addChunk(con_info, upload_data, *upload_data_size);
+            
+            /* HARD DEBUG
+                printf(">>>>>>  Received chunk(%d), >%s<\n", *upload_data_size, upload_data);
+                printf(">>>>>>> buff(%d, %d) : >%s<\n", con_info->buffIdx, con_info->buffSize, con_info->buff);
+            */
+            *upload_data_size = 0;
+            return MHD_YES;    
+        }
+        else{
+            /* HARD DEBUG
+                printf(">>>>>>  Received final chunk(%d), >%s<\n", *upload_data_size, upload_data);
+                printf(">>>>>>> buff(%d, %d) : >'%s'<\n", con_info->buffIdx, con_info->buffSize, con_info->buff);
+            */
+            
+            // Request completa, generar salida
+            initializeJSonDocument(&jDocIn);
+            parseJSon(&jDocIn, con_info->buff);
+            freeConInfo(con_info);
+         
+            initializeJSonDocument(&jDocOut);
+            getDataResponse(restWS, &jDocIn, &jDocOut);
+            
+            //response = send_page(connection, errorpage);
+            response = send_page(connection, getJSonString(&jDocOut));
+        }   
+    }
+    else{
+        response = send_page(connection, errorpage);
+    }
+
+    
+    *con_cls = NULL;
+    return response;
+}
 
 
 void loadDefaultRestWSContext(restWSContext* ctx){
@@ -64,19 +197,14 @@ void setRestWSSource(restWSContext* ctx, pCarsSourceContext* pCarsSrcCtx){
 
 int initializeRestWSContext(restWSContext* ctx){
     
-    loadDefaultServerSocketContext(&ctx->socketCtx);
-    setServerSocketPort(&ctx->socketCtx, ctx->port);
-    setServerSocketExtContext(&ctx->socketCtx, ctx);
-    setServerSocketRequestHandler(&ctx->socketCtx, (int (*)(int,  void *)) restRequestHandler);
-    
-    if(initializeServerSocketContext(&ctx->socketCtx) != 0){
-        blog(LOG_ERROR, "Error inicializando socket para Web Service Rest");
-        return -1;
-    }
-    
-    // Rest WS Thread
-    if(pthread_create(&ctx->restWSThread, NULL, (void * (*)(void *)) socketServerLoop, &ctx->socketCtx) != 0){
-        blog(LOG_ERROR, "Error creando Thread RestWS");
+    if((ctx->httpdCtx = MHD_start_daemon(   MHD_USE_THREAD_PER_CONNECTION,
+                                            ctx->port,
+                                            NULL,
+                                            NULL,
+                                            &requestHandler,
+                                            ctx,
+                                            MHD_OPTION_END)) == NULL){
+        blog(LOG_ERROR, "Error inicializando RESTWS en puerto %d", ctx->port);
         return -1;
     }
     
@@ -84,189 +212,94 @@ int initializeRestWSContext(restWSContext* ctx){
 }
 
 void freeRestWSContext(restWSContext* ctx){
-    freeServerSocketContext(&ctx->socketCtx);
-}
-
-void freeRestRequest(restRequest* req){
-    if(req->msgBuffTotalSize > 0) {
-        free(req->msgBuff);
+    if(ctx->httpdCtx != NULL){
+        blog(LOG_INFO, "Deteniendo servidor REST.");
+        MHD_stop_daemon(ctx->httpdCtx);
     }
 }
 
-void freeRestResponse(restResponse* res){
-    if(res->msgBuffTotalSize > 0) {
-        free(res->msgBuff);
-    }
-}
 
-//////////////////////////
-// Rest Request Callback
-//////////////////////////
-int restRequestHandler(int connfd, restWSContext* ctx) {
-    restRequest req;
-    restResponse res;
+int getFieldsResponse(restWSContext* ctx, jSonDocument* jdoc){
     
-    // Read raw request and categorize request
-    readRequest(connfd, &req);
-    
-    // Process Request and produce response
-    processRequest(ctx, &req, &res);
-    
-    // Send Response
-    sendResponse(connfd, res);
-
-    freeRestRequest(&req);
-    freeRestResponse(&res);
-}
-
-int readRequest(int connfd, restRequest* req) {
-    int nread;
-    int finalMsg;
-    char delim[4];
-    int delimLen;
-    int i;
-    
-    
-    memset(req, 0, sizeof(restRequest));
-    req->msgLen = 0;
-    
-    // Initial allocation
-    req->msgLen = 0;
-    req->msgBuffTotalSize = DEFAULT_MSG_LEN;
-    if((req->msgBuff = malloc(sizeof(char)*DEFAULT_MSG_LEN)) == NULL) {
-        blog(LOG_ERROR, "Error allocating memory for Rest message");
+    if(getPCarsSourceFields(ctx->pCarsSrcCtx, jdoc) == -1)
         return -1;
-    }
-    
-    delimLen = strlen(MSG_DELIMITER_WIN);
-    finalMsg = 0;
-    while(finalMsg != 2 && (nread = serverReadBuffer(connfd, &req->msgBuff[req->msgLen], DEFAULT_MSG_LEN/2 /* lee medio buffer */)) > 0){
-        req->msgLen += nread;
-        
-        if(req->msgLen >= delimLen){
-            memcpy(delim, &req->msgBuff[req->msgLen-delimLen], sizeof(char)*delimLen);
-            if(memcmp(delim, MSG_DELIMITER_WIN, sizeof(char)*delimLen) == 0){
-                finalMsg++;
-            }
-        }
-        
-        // Reserva mas buffer
-        if(finalMsg < 2 && (req->msgLen >=  req->msgBuffTotalSize / 2)){ 
-            
-            if((req->msgBuff = realloc(req->msgBuff, req->msgBuffTotalSize+DEFAULT_MSG_LEN)) == NULL){
-                blog(LOG_ERROR, "Error reallocating memory for Rest message");
-                return -1;
-            }
-            
-            req->msgBuffTotalSize += DEFAULT_MSG_LEN;
-        }
-    }
-    
-    if(nread < 0){
-        blog(LOG_INFO, "Client conexion error");
-        return -1;
-    }
-    
-    
-    // Request Analysis
-    if(strlen(req->msgBuff) > strlen(GET_LIST_HEADER) && memcmp(req->msgBuff, GET_LIST_HEADER, sizeof(char)*strlen(GET_LIST_HEADER)) == 0) {
-        req->requestType = REQUEST_TYPE_LIST_FIELDS;
-    }else if(strlen(req->msgBuff) > strlen(GET_DATA_HEADER) && memcmp(req->msgBuff, GET_DATA_HEADER, sizeof(char)*strlen(GET_DATA_HEADER)) == 0) {
-        req->requestType = REQUEST_TYPE_GET_DATA;
-    }else{
-        req->requestType = REQUEST_TYPE_UNKOWN;
-    }
-    
-    // Body Analisis
-    if(req->requestType != REQUEST_TYPE_UNKOWN){
-        i = 0;
-        while(i < req->msgLen+delimLen && memcmp(&req->msgBuff[i], MSG_DELIMITER_WIN, delimLen) != 0)
-            i++;
-        
-        if(i < req->msgLen+4){
-            req->body = &req->msgBuff[i+4];
-        }
-        
-        blog(LOG_TRACE, "RestWS Request Body : '%s'", req->body);
-    }   
-}
-
-
-int processRequest(restWSContext* ctx, restRequest* req, restResponse* res){
-    
-    jSonDocument jSonDoc;
-    char* s;
-    
-    
-    switch (req->requestType) {
-        case REQUEST_TYPE_LIST_FIELDS: 
-            
-            // Returns jSon with loaded data
-            if(getPCarsSourceFields(ctx->pCarsSrcCtx, &jSonDoc) == -1) {
-                blog(LOG_ERROR, "Error recuperando lista de campos de source PCars");
-                return -1;
-            }
-            
-            s = getJSonString(&jSonDoc);
-            res->msgLen             = strlen(s);
-            res->msgBuffTotalSize   = res->msgLen + 1;            
-            res->msgBuff            = malloc(sizeof(char)*res->msgLen); // TODO: Tratar error
-            strcpy(res->msgBuff, s);
-            
-            freeJSonDocument(&jSonDoc);
-            
-            break;
-            
-        case REQUEST_TYPE_GET_DATA :
-            
-            if(parseJSon(&jSonDoc, req->body) == -1){
-                // Error parsing input. No JSon
-            }
-            
-            // TODO
-            
-            break;
-            
-        case REQUEST_TYPE_UNKOWN:
-            
-            // TODO
-            
-            break;
-        default :
-            // Unkown error.
-            return -1;
-    }
     
     return 0;
 }
 
-
-int buildResponse(restWSContext* ctx, restRequest* msg){
+int getDataResponse(restWSContext* ctx, jSonDocument* in, jSonDocument* out){
+    int i;
+    int nFields;
+    int dataFields[END_PCARS_FIELDS-1];
+    const char* fieldName;
+    int idx;
     
-    memset(msg, 0, sizeof(restRequest));
-    msg->msgBuffTotalSize = DEFAULT_MSG_LEN;
-    
-    // Initial allocation
-    msg->msgLen = 0;
-    msg->msgBuffTotalSize = DEFAULT_MSG_LEN;
-    if((msg->msgBuff = malloc(sizeof(char)*DEFAULT_MSG_LEN)) == NULL) {
-        blog(LOG_ERROR, "Error allocating memory for Rest message");
+    if((nFields = getArraySize(in, "fields")) == -1){
+        blog(LOG_ERROR, "Request getdata has no 'fields' array");
         return -1;
     }
     
-    msg->msgLen = sprintf(msg->msgBuff, "RESPONSE\r\n rpms: %f, vel : %f", ctx->pCarsSrcCtx->pCarsSHM->mRpm, ctx->pCarsSrcCtx->pCarsSHM->mSpeed);
-}
-
-
-int sendResponse(int connfd, restResponse* res) {
-    int nwrite;
-    
-    nwrite = serverWriteBuffer(connfd, res->msgBuff, res->msgLen);
-    
-    if(nwrite < 0 ){
-        blog(LOG_ERROR, "Error sending Rest Response");
-        return -1;
+    memset(dataFields, 0, sizeof(int)*(END_PCARS_FIELDS-1));
+    for(i = 0; i < nFields; i++){
+        fieldName = getArrayStringElem(in, "fields", i);
+        
+        if((idx = enumPCarsFieldsFromString(fieldName)) == -1){
+            blog(LOG_WARN, "RestWS getdata unkown field : '%s'. Ignoring", fieldName);
+        }else{
+            dataFields[idx] = 1;
+        }
     }
     
-    return 1;
+    getPCarsData(ctx->pCarsSrcCtx, dataFields, out);
+    
+    return 0;
 }
+
+//static int
+//iterate_post (void *coninfo_cls, enum MHD_ValueKind kind, const char *key,
+//              const char *filename, const char *content_type,
+//              const char *transfer_encoding, const char *data, uint64_t off,
+//              size_t size)
+//{
+//  struct connection_info_struct *con_info = coninfo_cls;
+//
+//  if (0 == strcmp (key, "name"))
+//    {
+//      if ((size > 0) && (size <= MAXNAMESIZE))
+//        {
+//          char *answerstring;
+//          answerstring = malloc (MAXANSWERSIZE);
+//          if (!answerstring)
+//            return MHD_NO;
+//
+//          snprintf (answerstring, MAXANSWERSIZE, greetingpage, data);
+//          con_info->answerstring = answerstring;
+//        }
+//      else
+//        con_info->answerstring = NULL;
+//
+//      return MHD_NO;
+//    }
+//
+//  return MHD_YES;
+//}
+//
+//static void
+//request_completed (void *cls, struct MHD_Connection *connection,
+//                   void **con_cls, enum MHD_RequestTerminationCode toe)
+//{
+//  struct connection_info_struct *con_info = *con_cls;
+//
+//  if (NULL == con_info)
+//    return;
+//
+//  if (con_info->connectiontype == POST)
+//    {
+//      MHD_destroy_post_processor (con_info->postprocessor);
+//      if (con_info->answerstring)
+//        free (con_info->answerstring);
+//    }
+//
+//  free (con_info);
+//  *con_cls = NULL;
+//}

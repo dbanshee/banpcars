@@ -13,14 +13,14 @@
 #include "../../ext/SharedMemory.h"
 #include "../headers/serversocket.h"
 #include "../headers/pcarsSource.h"
+#include <microhttpd.h>
 
 #define DEFAULT_REST_LISTEN_PORT 8080
 
 typedef struct restWSContext {
     int                 port;
-    serverSocketContext socketCtx;
+    struct MHD_Daemon*  httpdCtx;
     pCarsSourceContext* pCarsSrcCtx;
-    pthread_t           restWSThread;
 } restWSContext;
 
 
