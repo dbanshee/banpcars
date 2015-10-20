@@ -1,70 +1,45 @@
-#define IO(pin,state) ((state) == 0) ? IO_L(pin) : IO_H(pin)
-#define IO_L(pin)     ((pin)<8) ? PORTD &= ~(1<<(pin)) : PORTB &= ~(1<<((pin)-8))
-#define IO_H(pin)     ((pin)<8) ? PORTD |=  (1<<(pin)) : PORTB |=  (1<<((pin)-8))
-
 #include <Adafruit_NeoPixel.h>
+#include <TimerThree.h>
 
-/*
-    0
-   ---
- 6| 5 |7
-   ---
- 1| 2 |4
-   --- o 3
-   
-DATA: B01234567
-*/
+#define LED1_INTERRUPT_MODE_NONE     0
+#define LED1_INTERRUPT_MODE_BLINK    1
+#define LED1_INTERRUPT_MODE_NEUTRAL  2
+#define LED1_INTERRUPT_MODE_KIT      3
 
-
-// 7 Segments Config
-#define DATA 8
-#define CLSH 9
-#define CLST 10
-#define CLR  11
-#define LED  12
-#define NCHAR 3
-#define NLEVL 4
-#define NSEGMENT 8
-
-
-
-
-const uint8_t numeros[] = {
-  B11101011,
-  B00001001,
-  B11100101,
-  B10101101,
-  B00001111,
-  B10101110,
-  B11101110,
-  B10001001,
-  B11101111,
-  B10101111
-};
-
-
+// TODO: Permitir establecer mediante comandos serie
 // Leds Array Config
-const uint8_t DEFAULT_LED_ARRAY_SIZE   = 12;
-const uint8_t DEFAULT_LED_ARRAY_PIN    = 6;
-const uint8_t DEFAULT_LED_BLINK_MILLIS = 100;
+const uint8_t DEFAULT_LED_ARRAY_SIZE     = 12;
+const uint8_t DEFAULT_LED_ARRAY_PIN      = 6;
+const uint8_t DEFAULT_LED_BLINK_MILLIS   = 100;
+const uint8_t DEFAULT_LED_NEUTRAL_MILLIS = 250;
 
 
-// Necesario instanciar la variable? 
+// Adafruit leds controller - Necesario instanciar la variable? 
 Adafruit_NeoPixel leds(DEFAULT_LED_ARRAY_SIZE, DEFAULT_LED_ARRAY_PIN);
-volatile uint8_t ledsA_Non;
-volatile uint8_t lastLedsA_Non;
-volatile uint8_t ledsBlink;
+
+
+// Leds1 General Vars
+volatile uint8_t leds1Mode;
+volatile uint8_t nLeds1Active;
+volatile uint8_t lastNLeds1Active;
+
+
+// Leds Blink Control
 volatile unsigned long lastBlinkTime;
 volatile uint8_t ledsBlinkState;
 
-// Display data (must be read from RAM) (7 Segments)
-volatile uint8_t seg1[NCHAR];
-volatile uint8_t seg1_levl[NCHAR];
+// Leds Neutral Control
+volatile unsigned long lastNeutralTime;
+volatile uint8_t ledsNeutralState;
+
+
+
 
 // Array para la lectura de comandos
 char    cmd[16];
 uint8_t cmdlen = 0;
 uint8_t echo   = 0;
+
 
 /* 
  * Main Setup
@@ -75,62 +50,24 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   
+  // Inicializacion de Timers
+  Timer3.initialize(1500);
+  Timer3.attachInterrupt(interruptCallback);
+  
   // Si ya se ha instanciado con estos valores ...
   leds.setPin(DEFAULT_LED_ARRAY_PIN);
   leds.setNumPixels(DEFAULT_LED_ARRAY_SIZE);
   leds.setBrightness(50);
   clearLedArray();
   leds.show();
-  ledsA_Non = lastLedsA_Non = ledsBlink = ledsBlinkState = 0;
   
+  // Leds Mode
+  leds1Mode = LED1_INTERRUPT_MODE_NONE;
   
-  // Pines de salida
-  pinMode(DATA,OUTPUT);
-  pinMode(CLSH,OUTPUT);
-  pinMode(CLST,OUTPUT);
-  pinMode(CLR,OUTPUT);
-  pinMode(LED,OUTPUT);
-  
-  // Nivel bajo en todas las salidas
-  IO(DATA,0);
-  IO(CLSH,0);
-  IO(CLST,0);
-  IO(CLR,1);
-  IO(LED,1);
-  
-  // Inicializo variables
-  for(uint8_t i = 0; i < NCHAR; i++){
-    seg1[i]=numeros[0];
-    seg1_levl[i]=NLEVL;
-  }
-
-  
-  
-  //------------------------------------
-  // Programacion de rutina de refresco
-  //------------------------------------
-  
-  // Desactivamos las interrupciones
-  cli();
-  // Configurar el timer2 modo CTC
-  // Interrupcion 'on Match'
-  // CLK = 16 MHz
-  // F = CLK/256 = 62500 Hz
-  // CNT = 15
-  // F/16 =  3906.25 Hz = 0,256 ms = T
-  // NCHAR=9
-  // NLEVL=4
-  // T * NCHAR * NLEVL = 9,216 ms < 10 ms
-
-  TCCR2B =  _BV(CS22) | _BV(CS21);
-  TCCR2A = _BV(WGM21);
-  OCR2A  = 15;
-  TIMSK2 = _BV(OCIE2A);
-  
-  sei();
-  
-  randomSeed(analogRead(0));
-  
+  // Leds1 General Vars
+  nLeds1Active = lastNLeds1Active = ledsBlinkState = 0;
+    
+  //randomSeed(analogRead(0));
 }
 
 
@@ -142,14 +79,7 @@ void loop() {
   // Read Command. No Block
   if(readCommand()){
     executeCommand();
-  } 
-  
-  // Leds Array Refresh
-  if(ledsA_Non != lastLedsA_Non){
-    loadLedArray(ledsA_Non);
-    leds.show();
-    lastLedsA_Non = ledsA_Non;
-  } 
+  }   
 }
 
 /*
@@ -204,13 +134,37 @@ void executeCommand() {
 
 
 uint8_t cmdSet(char* v) {
+  
+  // Leds Number MODE
   if(strncmp(v,"L1N=",4) == 0) {
-    ledsA_Non = atoi(v+4);   
-    ledsBlink = 0;
-  } else if(strncmp(v,"SEG1=",5) == 0){
-    parseSegValue(seg1, atoi(v+5));
-  } else if(strncmp(v,"BLINK=",6) == 0){
-    ledsBlink = atoi(v+6);
+    leds1Mode = LED1_INTERRUPT_MODE_NONE;
+    nLeds1Active = atoi(v+4);   
+    
+// 7 Segments     
+//  } else if(strncmp(v,"SEG1=",5) == 0) {
+//    parseSegValue(seg1, atoi(v+5));
+
+  // Blink Mode
+  } else if(strncmp(v,"L1BLINK=",8) == 0){
+    if(atoi(v+8) == 1){
+      leds1Mode = LED1_INTERRUPT_MODE_BLINK;
+      lastBlinkTime = millis();
+    }else{
+      leds1Mode = LED1_INTERRUPT_MODE_NONE;      
+    }
+    
+  // Neutral Mode
+  } else if(strncmp(v,"L1NEUTRAL=",10) == 0){
+    if(atoi(v+10) == 1){
+      leds1Mode = LED1_INTERRUPT_MODE_NEUTRAL;
+      lastNeutralTime = millis();
+    }else{
+      leds1Mode         = LED1_INTERRUPT_MODE_NONE;      
+      nLeds1Active      = 0;
+      lastNLeds1Active  = 1; // Diferente del ultimo para que lo trate la interrupcion. Mejorar.
+    }
+    
+  // Default error
   } else {
     return 1;
   }
@@ -248,6 +202,25 @@ void loadLedArray(uint8_t numLeds){
 }
 
 
+void loadLedNeutralArray(uint8_t numLeds, uint8_t phase){
+  int i;
+  
+  clearLedArray();
+  for(i = 0; i < numLeds && i < DEFAULT_LED_ARRAY_SIZE; i++){
+    if(i % 2 == phase){
+      if(i < 4){
+        leds.setPixelColor(i, '\x00', '\xff', '\x00');
+      }else if(i < 8){
+        leds.setPixelColor(i, '\xff', '\x00', '\x00');
+      }else{
+        leds.setPixelColor(i, '\x00', '\x00', '\xff');
+      }
+    }
+  }  
+}
+
+
+
 void clearLedArray(){
   int i;  
   for(i = 0; i < DEFAULT_LED_ARRAY_SIZE; i++)
@@ -256,84 +229,52 @@ void clearLedArray(){
 
 
 
-//-------------------
-// 7 Segments Funcs
-//-------------------
-void parseSegValue(volatile uint8_t *disp, int value){
-  int c, r;
+// Interrupcion de refresco (libreria Timers)
+
+void interruptCallback(void){
+  unsigned long currentTime = millis();
   
-  r = value % 10;
-  disp[0] = numeros[r];
-  
-  c = value / 10;
-  r = c % 10;
-  disp[1] = numeros[r];
-  
-  c = c / 10;
-  r = c % 10;
-  disp[2] = numeros[r];
-}
-
-
-
-
-// Variables para el refresco
-uint8_t current_char = 0;
-uint8_t current_levl = 0;
-
-// Interrupcion de refresco
-ISR(TIMER2_COMPA_vect) {
+  // Leds Array Refresh
+  if(leds1Mode == LED1_INTERRUPT_MODE_NONE && nLeds1Active != lastNLeds1Active){
+    loadLedArray(nLeds1Active);
+    leds.show();
+    lastNLeds1Active = nLeds1Active;
+  } 
   
   
   // Leds Blink
-  if(ledsBlink && abs(millis()-lastBlinkTime) > DEFAULT_LED_BLINK_MILLIS){
-    lastBlinkTime = millis();
+  if(leds1Mode == LED1_INTERRUPT_MODE_BLINK && abs(currentTime-lastBlinkTime) > DEFAULT_LED_BLINK_MILLIS){
+    lastBlinkTime = currentTime;
     
     if(ledsBlinkState == 0){
-       loadLedArray(ledsA_Non);  
+       loadLedArray(nLeds1Active);  
        ledsBlinkState = 1;
     }else{
        loadLedArray(0);      
        ledsBlinkState = 0;
     }
-    cli();
+//    cli();
     leds.show();
-    sei();
+//    sei();
   }
   
-     
-  // 7 Segments Refresh
-  IO(LED,1);
-  
-  // Seleccionamos el caracter correspondiente
-  // Logica inversa: 0-on, 1-off
-  for(uint8_t c=0; c < NCHAR; c++) {
-    IO(DATA,!((c==current_char) && (current_levl <= seg1_levl[c])));
-    IO(CLSH,1);
-    IO(CLSH,0);
+  // Leds Neutral
+  if(leds1Mode == LED1_INTERRUPT_MODE_NEUTRAL && abs(currentTime-lastNeutralTime) > DEFAULT_LED_NEUTRAL_MILLIS){
+    lastNeutralTime = currentTime;
+
+    loadLedNeutralArray(DEFAULT_LED_ARRAY_SIZE, ledsNeutralState);  
+    
+    if(ledsNeutralState == 0){
+       ledsNeutralState = 1;
+    }else{
+       ledsNeutralState = 0;
+    }
+//    cli();
+    leds.show();
+//    sei();
   }
   
-  // Establecemos el valor de cada segmento
-  // para el caracter actual
-  uint8_t current_data = seg1[current_char];
-  for(uint8_t s=0; s < NSEGMENT; s++) {
-    IO(DATA,(1<<s) & current_data);
-    IO(CLSH,1);
-    IO(CLSH,0);
-  }
   
-  // Cargo los latches de salida
-  IO(CLST,1);
-  IO(CLST,0);
-  
-  // En el siguiente pulso enendere el siguiente caracter
-  current_levl++;
-  if(current_levl > NLEVL) {
-    current_levl = 0;
-    current_char = (current_char+1)%NCHAR;
-  }
-  
-  IO(LED,0);
 }
 
 
