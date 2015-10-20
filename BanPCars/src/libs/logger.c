@@ -6,8 +6,8 @@
 #include <sys/time.h>
 
 
-int LOG_LEVEL = LOG_INFO;
-//int LOG_LEVEL = LOG_TRACE;
+//int LOG_LEVEL = LOG_INFO;
+int LOG_LEVEL = LOG_TRACE;
 
 void setLogLevel(int level){
     LOG_LEVEL = level;
