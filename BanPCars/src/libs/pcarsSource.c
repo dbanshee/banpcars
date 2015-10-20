@@ -20,11 +20,15 @@ int initializePCarsSourceContext(pCarsSourceContext* ctx){
     //TODO: Check and return errors
     if(ctx->pCarsDumpCtx != NULL){
         ctx->pCarsSHM = &ctx->pCarsDumpCtx->pCarsSHM;
+        return 0;
     }
     
     if(ctx->pCarsCtx != NULL){
         ctx->pCarsSHM = ctx->pCarsCtx->shmMem;
+        return 0;
     }
+    
+    return -1;
 }
 
 void freePCarsSourceContext(pCarsSourceContext* ctx){

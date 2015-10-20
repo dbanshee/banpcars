@@ -3,27 +3,26 @@
 #include <string.h>
 #include "../headers/simController.h"
 #include "../headers/logger.h"
-
-#define LED_RPM_NUMLEDS         12
-#define LED_RPM_START_RATIO     0.85
-#define LED_RPM_CHANGE_RATIO    0.93
-#define LED_RPM_BLINK_RATIO     0.99
+#include <sys/time.h>
 
 
-//#define LED_BLACK 		"\x00\x00\x00"
-//#define LED_WHITE 		"\xff\xff\xff"
-//#define LED_RED   		"\xff\x00\x00"
-//#define LED_GREEN 		"\x00\xff\x00"
-//#define LED_BLUE  		"\x00\x00\xff"
 
-//typedef struct {
-//  uint8_t r,g,b;
-//} pixel_t;
+#define LED_RPM_NUMLEDS             12
+#define LED_RPM_START_RATIO         0.85
+#define LED_BLINK_DELAY_MILLIS      250L
+#define LED_NEUTRAL_DELAY_MILLIS    3000L
 
-// static pixel_t lastLedArray  [LED_RPM_NUMLEDS];
-static int lastLedOn = 0;
-static int lastSpeed = 0;
-static int lastBlink = 0;
+
+static int  lastLedOn       = 0;
+static int  lastSpeed       = 0;
+static int  lastGear        = 0;
+static int  lastEngineOn    = 0;
+
+static int blinkOn = 0;     // 3 estados. 0 OFF, 1 MARCADO, 2 ON
+static long startBlinkTime;
+
+static int neutralOn = 0;   // 3 estados. 0 OFF, 1 MARCADO, 2 ON
+static long startNeutralTime;
 
 
 
@@ -63,23 +62,32 @@ char* itoa (int value, char * buffer, int radix) {
     else return NULL;
 }
 
+long current_timestamp() {
+    struct timeval te; 
+    gettimeofday(&te, NULL); // get current time
+    long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000; // caculate milliseconds
+    return milliseconds;
+}
+
 int refreshLEDBar(simCtrlContext* ctx){    
-    
+    long currentTime = current_timestamp();
     char buff[5];
 
-    int i;
-    int groupLen        = LED_RPM_NUMLEDS/3;
-    
     // Acceso sucio directo por estructuras. TODO: acceso getters
+    // Aparentemente solo funciona el flag del limitador del pitlane !!!
+    unsigned int engineActive   = (ctx->pCarsSrcCtx->pCarsSHM->mCarFlags & (1<<1)) >> 1;
+    
+    float throttle      = ctx->pCarsSrcCtx->pCarsSHM->mThrottle;
+    int nGear           = ctx->pCarsSrcCtx->pCarsSHM->mGear;
     int rpms            = ctx->pCarsSrcCtx->pCarsSHM->mRpm;
-    int maxRpms         = ctx->pCarsSrcCtx->pCarsSHM->mMaxRPM*LED_RPM_CHANGE_RATIO;
+    int maxRpms         = ctx->pCarsSrcCtx->pCarsSHM->mMaxRPM/**LED_RPM_CHANGE_RATIO*/;
     double ledsThres 	= maxRpms*LED_RPM_START_RATIO;
     double ledLen    	= (maxRpms - ledsThres) / LED_RPM_NUMLEDS; 
     
     int numLeds = 0;
     
-    //blog(LOG_TRACE, "Enviando RPMS %d", rpms)
-    if(rpms > maxRpms*LED_RPM_START_RATIO){
+
+    if(rpms > ledsThres){
         numLeds = round((rpms - ledsThres) / ledLen); //FIXME
 
         if(numLeds > LED_RPM_NUMLEDS){
@@ -88,22 +96,64 @@ int refreshLEDBar(simCtrlContext* ctx){
         }
     }
     
+   
+    // Cambio en numero de leds
     if(lastLedOn != numLeds){
-        lastLedOn = numLeds;
         
         itoa(numLeds, buff, 10);
-        sendSimBoardCmd(&ctx->serialCtx, "L1N", buff);
+        sendSimBoardCmd(&ctx->serialCtx, "L1N", buff); // Disable other leds mode if active (BLINK, NEUTRAL, ... ))
+        blinkOn = neutralOn = 0;    
     }
 
-    if(rpms < maxRpms*LED_RPM_BLINK_RATIO)
-        lastBlink = 0;
     
-    if(rpms > maxRpms*LED_RPM_BLINK_RATIO && lastBlink == 0){
-        sendSimBoardCmd(&ctx->serialCtx, "BLINK", "1");
-        lastBlink = 1;
+    // Blink start condition
+    if(blinkOn == 0 && numLeds == LED_RPM_NUMLEDS) {
+        startBlinkTime = currentTime;
+        blinkOn = 1;
     }
     
     
+    // Todos los leds ON mas de LED_BLINK_DELAY_MILLIS
+    if(blinkOn == 1 && (current_timestamp() - startBlinkTime) > LED_BLINK_DELAY_MILLIS){
+        sendSimBoardCmd(&ctx->serialCtx, "L1BLINK", "1");
+        blinkOn = 2;
+    }
+    
+    
+    // Start Engine
+    if(lastEngineOn != engineActive){
+        if(engineActive == 1){
+            sendSimBoardCmd(&ctx->serialCtx, "L1NEUTRAL", "1");
+            neutralOn = 2;
+        }else{
+            sendSimBoardCmd(&ctx->serialCtx, "L1NEUTRAL", "0");
+            neutralOn = 0;
+        }
+    }
+    
+    // Neutral start condition
+    if(engineActive && neutralOn == 0 && nGear == 0 && numLeds == 0 && throttle == 0){
+        startNeutralTime = currentTime;
+        neutralOn = 1;
+    }
+        
+    // Neutral start/stop
+    if(neutralOn > 0){
+        if(neutralOn == 2 && (nGear != 0 || numLeds != 0 || throttle != 0 || !engineActive)){
+            sendSimBoardCmd(&ctx->serialCtx, "L1NEUTRAL", "0");
+            neutralOn = 0;
+        } else if(neutralOn == 1 && (currentTime - startNeutralTime) > LED_NEUTRAL_DELAY_MILLIS){
+            sendSimBoardCmd(&ctx->serialCtx, "L1NEUTRAL", "1");
+            neutralOn = 2;
+        }
+    }
+    
+    
+    // Direct Cars magnitudes
+    lastLedOn       = numLeds;
+    lastGear        = nGear;
+    lastEngineOn    = engineActive;
+    //lastSpeed = 
     return 1;
 }
 

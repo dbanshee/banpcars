@@ -34,9 +34,10 @@ BanPCars Server Version : %s \n\
 \n\
 Usage: \n\
 \n\
-banpcars.exe [-r dumpReadFile] [-d startSecs] [-rest port] [-com port] \n\
+banpcars.exe [-r dumpReadFile] [-w dumpWriteFile] [-d startSecs] [-rest port] [-com port] \n\
 \n\
     -r dumpReadFile : Read dumpFile instead PCars shared memory \n\
+    -w dumpWriteFile : Write dumpFile using active source data. \n\
     -d startSecs    : Only with -r option. Ignore first 'startSecs' of dumpFile \n\
     -rest port      : Start Rest Web Service at 'port' to export data at JSON. \n\
     -com port       : Start Arduino connection at COM 'port'. Only for BanSimBoard. \n\
