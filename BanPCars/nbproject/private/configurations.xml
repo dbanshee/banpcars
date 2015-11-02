@@ -26,18 +26,18 @@
       </nativedebugger>
       <runprofile version="9">
         <runcommandpicklist>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 7</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -com 7 </runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -com 7 -rest 8080</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -rest 8080</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 20 -rest 8080 -com 7</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -com 7</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -com 7 -rest 8080</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 30 -rest 8080 -com 7</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}"  -rest 8080 -com 7</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 100</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 150</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 200</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 300</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 250</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7</runcommand>
+        <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 250</runcommand>
         <rundir></rundir>
         <buildfirst>true</buildfirst>
         <terminal-type>0</terminal-type>

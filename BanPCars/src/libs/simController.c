@@ -54,10 +54,10 @@ int initializetSimCtrlContext(simCtrlContext* ctx){
 }
 
 void freeSimCtrlContext(simCtrlContext* ctx){
-    if(ctx->serialCtx != NULL){
+//    if(ctx->serialCtx != NULL){
         sendSimBoardCmd(&ctx->serialCtx, "L1N", "0");
         freeSerialContext(&ctx->serialCtx);
-    }
+//    }
 }
 
 

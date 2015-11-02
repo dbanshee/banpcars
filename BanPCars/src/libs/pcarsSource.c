@@ -104,9 +104,70 @@ void addArrayBoolean(jSonDocument* doc, char* fieldName, bool* arr, int dim){
     closeJSonArray(doc);
 }
 
+void getExtMSessionSectorGap(pCarsSourceContext* ctx, float* res){
+    
+    int sector = ctx->pCarsSHM->mParticipantInfo[ctx->pCarsSHM->mViewedParticipantIndex].mCurrentSector;
+            
+    
+    if(sector < 2 || ctx->pCarsSHM->mCurrentSector1Time == -1  || ctx->pCarsSHM->mFastestSector1Time == -1){
+        res[0] = -999999;  
+    } else {
+        res[0] = ctx->pCarsSHM->mCurrentSector1Time - ctx->pCarsSHM->mFastestSector1Time;
+    }
+    
+    if(sector < 3 ||ctx->pCarsSHM->mCurrentSector2Time == -1  || ctx->pCarsSHM->mFastestSector2Time == -1){
+        res[1] = -999999;  
+    } else {
+        res[1] = ctx->pCarsSHM->mCurrentSector2Time - ctx->pCarsSHM->mFastestSector2Time;
+    }
+
+    if(sector == 1 && ctx->pCarsSHM->mLastLapTime != -1 && ctx->pCarsSHM->mBestLapTime != -1){
+        res[2] = ctx->pCarsSHM->mLastLapTime - ctx->pCarsSHM->mBestLapTime;
+    }else{
+        res[2] = -999999;
+    }
+}
+
+float getExtMSessionDelta(pCarsSourceContext* ctx){
+    float res[3];
+    float delta = 0;
+    
+    int sector = ctx->pCarsSHM->mParticipantInfo[ctx->pCarsSHM->mViewedParticipantIndex].mCurrentSector;
+    
+    getExtMSessionSectorGap(ctx, res);
+    
+    if(sector <= 1)
+        delta = -999999;
+        
+    if(sector >= 1 && res[0] != -999999)
+        delta += res[0];
+    
+    if(sector >= 2 && res[1] != -999999)
+        delta += res[1];
+    
+    return delta;
+}
+
+
+
+void getExtMCurrentTime(pCarsSourceContext* ctx, float* res){
+    res[0] = ctx->pCarsSHM->mCurrentTime;
+    res[1] = ctx->pCarsSHM->mLapInvalidated;
+}
+                    
+void getExtMLastTime(pCarsSourceContext* ctx, float* res){
+    res[0] = ctx->pCarsSHM->mLastLapTime;
+    res[1] = ctx->pCarsSHM->mLastLapTime == ctx->pCarsSHM->mBestLapTime;
+}
+
+void getExtMPosition(pCarsSourceContext* ctx, char* buff){
+    sprintf(buff, "%d/%d", ctx->pCarsSHM->mViewedParticipantIndex+1, ctx->pCarsSHM->mNumParticipants);
+}
 
 int getPCarsData(pCarsSourceContext* ctx, int* fieldsArray, jSonDocument* out){
     int i;
+    float res[4];
+    char buff[1024];
     
     openJSonObject(out, "data");
     
@@ -197,13 +258,13 @@ int getPCarsData(pCarsSourceContext* ctx, int* fieldsArray, jSonDocument* out){
                     addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWorldFastestLapTime);
                     break;
                 case MCURRENTSECTOR1TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWorldFastestSector1Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCurrentSector1Time);
                     break;
                 case MCURRENTSECTOR2TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWorldFastestSector2Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCurrentSector2Time);
                     break;
                 case MCURRENTSECTOR3TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWorldFastestSector3Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCurrentSector3Time);
                     break;
                 case MFASTESTSECTOR1TIME:
                     addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mFastestSector1Time);
@@ -417,6 +478,25 @@ int getPCarsData(pCarsSourceContext* ctx, int* fieldsArray, jSonDocument* out){
                     break;
                 case MCLOUDBRIGHTNESS:
                     addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCloudBrightness);
+                    break;
+                case EXT_MSESSIONSECTORGAP:
+                    getExtMSessionSectorGap(ctx, res);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), res, 3 /*NUM SECTORS*/);
+                    break;
+                case EXT_MSESSIONSECTORDELTA:
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), getExtMSessionDelta(ctx));
+                    break;                    
+                case EXT_MCURRENTTIME:
+                    getExtMCurrentTime(ctx, res);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), res, 2 /*NUM SECTORS*/);
+                    break;
+                case EXT_MLASTLAPTIME:
+                    getExtMLastTime(ctx, res);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), res, 2 /*NUM SECTORS*/);
+                    break;
+                case EXT_MPOSITION:
+                    getExtMPosition(ctx, buff);
+                    addSimpleStringValue(out, enumPCarsFieldsToString(i), buff);
                     break;
                 default:
                     addSimpleStringValue(out, enumPCarsFieldsToString(i), "NOT_AVAILABLE");
@@ -635,6 +715,16 @@ int enumPCarsFieldsFromString(const char *s){
             return MWINDDIRECTIONY;
     else if(strcmp(s, "MCLOUDBRIGHTNESS") == 0)
             return MCLOUDBRIGHTNESS;
+    else if(strcmp(s, "EXT_MSESSIONSECTORGAP") == 0)
+        return EXT_MSESSIONSECTORGAP;
+    else if(strcmp(s, "EXT_MSESSIONSECTORDELTA") == 0)
+            return EXT_MSESSIONSECTORDELTA;
+    else if(strcmp(s, "EXT_MCURRENTTIME") == 0)
+            return EXT_MCURRENTTIME;
+    else if(strcmp(s, "EXT_MLASTLAPTIME") == 0)
+        return EXT_MLASTLAPTIME;
+    else if(strcmp(s, "EXT_MPOSITION") == 0)
+        return EXT_MPOSITION;
     else
         return -1;
 }
@@ -845,6 +935,16 @@ char* enumPCarsFieldsToString(int e){
                 return "MWINDDIRECTIONY";
         case MCLOUDBRIGHTNESS:
                 return "MCLOUDBRIGHTNESS";
+        case EXT_MSESSIONSECTORGAP:
+                return "EXT_MSESSIONSECTORGAP";
+        case EXT_MSESSIONSECTORDELTA:
+                return "EXT_MSESSIONSECTORDELTA";
+        case EXT_MCURRENTTIME:
+                return "EXT_MCURRENTTIME";                        
+        case EXT_MLASTLAPTIME:
+            return "EXT_MLASTLAPTIME";
+        case EXT_MPOSITION:
+                return "EXT_MPOSITION";
         case END_PCARS_FIELDS:
                 return "END_PCARS_FIELDS";
         default:
