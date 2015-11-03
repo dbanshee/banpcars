@@ -164,6 +164,23 @@ void getExtMPosition(pCarsSourceContext* ctx, char* buff){
     sprintf(buff, "%d/%d", ctx->pCarsSHM->mViewedParticipantIndex+1, ctx->pCarsSHM->mNumParticipants);
 }
 
+char* getExtMPCrashState(pCarsSourceContext* ctx){
+    switch(ctx->pCarsSHM->mCrashState){
+        case CRASH_DAMAGE_NONE:
+            return "NONE";
+        case CRASH_DAMAGE_OFFTRACK:
+            return "OFFTRACK";
+        case CRASH_DAMAGE_LARGE_PROP:
+            return "LARGE";
+        case CRASH_DAMAGE_SPINNING:
+            return "SPINNING";
+        case CRASH_DAMAGE_ROLLING:
+            return "ROLLING";
+        default:
+            return "-";
+    }
+}
+
 int getPCarsData(pCarsSourceContext* ctx, int* fieldsArray, jSonDocument* out){
     int i;
     float res[4];
@@ -498,6 +515,9 @@ int getPCarsData(pCarsSourceContext* ctx, int* fieldsArray, jSonDocument* out){
                     getExtMPosition(ctx, buff);
                     addSimpleStringValue(out, enumPCarsFieldsToString(i), buff);
                     break;
+                case EXT_MCRASHSTATE:
+                    addSimpleStringValue(out, enumPCarsFieldsToString(i), getExtMPCrashState(ctx));
+                    break;
                 default:
                     addSimpleStringValue(out, enumPCarsFieldsToString(i), "NOT_AVAILABLE");
                     break;
@@ -725,6 +745,8 @@ int enumPCarsFieldsFromString(const char *s){
         return EXT_MLASTLAPTIME;
     else if(strcmp(s, "EXT_MPOSITION") == 0)
         return EXT_MPOSITION;
+    else if(strcmp(s, "EXT_MCRASHSTATE") == 0)
+        return EXT_MCRASHSTATE;
     else
         return -1;
 }
@@ -947,6 +969,8 @@ char* enumPCarsFieldsToString(int e){
                 return "EXT_MPOSITION";
         case END_PCARS_FIELDS:
                 return "END_PCARS_FIELDS";
+        case EXT_MCRASHSTATE:
+                return "EXT_MCRASHSTATE";
         default:
             return NULL;
     }   
