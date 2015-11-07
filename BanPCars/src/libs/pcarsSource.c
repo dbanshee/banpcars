@@ -28,6 +28,9 @@ int initializePCarsSourceContext(pCarsSourceContext* ctx){
         return 0;
     }
     
+    ctx->dataExt.lastBestLapTime        = -1;
+    ctx->dataExt.updatedLastBestLapTime = 0;
+    
     return -1;
 }
 
@@ -107,7 +110,16 @@ void addArrayBoolean(jSonDocument* doc, char* fieldName, bool* arr, int dim){
 void getExtMSessionSectorGap(pCarsSourceContext* ctx, float* res){
     
     int sector = ctx->pCarsSHM->mParticipantInfo[ctx->pCarsSHM->mViewedParticipantIndex].mCurrentSector;
-            
+    
+    // Update Data. Separate in refresh action?
+    if(sector > 1){
+        if(ctx->dataExt.updatedLastBestLapTime == 0){
+            ctx->dataExt.lastBestLapTime = ctx->pCarsSHM->mBestLapTime;
+            ctx->dataExt.updatedLastBestLapTime = 1;
+        }else{
+            ctx->dataExt.updatedLastBestLapTime = 0;
+        }
+    } 
     
     if(sector < 2 || ctx->pCarsSHM->mCurrentSector1Time == -1  || ctx->pCarsSHM->mFastestSector1Time == -1){
         res[0] = -999999;  
@@ -120,9 +132,9 @@ void getExtMSessionSectorGap(pCarsSourceContext* ctx, float* res){
     } else {
         res[1] = ctx->pCarsSHM->mCurrentSector2Time - ctx->pCarsSHM->mFastestSector2Time;
     }
-
-    if(sector == 1 && ctx->pCarsSHM->mLastLapTime != -1 && ctx->pCarsSHM->mBestLapTime != -1){
-        res[2] = ctx->pCarsSHM->mLastLapTime - ctx->pCarsSHM->mBestLapTime;
+    
+    if(sector == 1 && ctx->dataExt.lastBestLapTime != -1 && ctx->pCarsSHM->mBestLapTime != -1){
+        res[2] = ctx->pCarsSHM->mLastLapTime - ctx->dataExt.lastBestLapTime;
     }else{
         res[2] = -999999;
     }
@@ -152,12 +164,12 @@ float getExtMSessionDelta(pCarsSourceContext* ctx){
 
 void getExtMCurrentTime(pCarsSourceContext* ctx, float* res){
     res[0] = ctx->pCarsSHM->mCurrentTime;
-    res[1] = ctx->pCarsSHM->mLapInvalidated;
+    res[1] = ctx->pCarsSHM->mLapInvalidated || ctx->pCarsSHM->mLapInvalidated == -1;
 }
                     
 void getExtMLastTime(pCarsSourceContext* ctx, float* res){
     res[0] = ctx->pCarsSHM->mLastLapTime;
-    res[1] = ctx->pCarsSHM->mLastLapTime == ctx->pCarsSHM->mBestLapTime;
+    res[1] = ctx->pCarsSHM->mLastLapTime != ctx->pCarsSHM->mBestLapTime;
 }
 
 void getExtMPosition(pCarsSourceContext* ctx, char* buff){

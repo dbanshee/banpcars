@@ -15,11 +15,17 @@
 #include "pcarsDump.h"
 #include "jSon.h"
 
+typedef struct dataExtension {
+    float lastBestLapTime;
+    float updatedLastBestLapTime;
+} dataExtension;
+
 
 typedef struct pCarsSourceContext {
     SharedMemory*           pCarsSHM;
     pCarsContext*           pCarsCtx;
     pCarsDumpReaderContext* pCarsDumpCtx;
+    dataExtension           dataExt;
 } pCarsSourceContext;
 
 
