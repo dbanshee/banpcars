@@ -1,10 +1,12 @@
 #include <Adafruit_NeoPixel.h>
 #include <TimerThree.h>
 
+#define LE1_DEFAULT_BRIGHTNESS       25
+
 #define LED1_INTERRUPT_MODE_NONE     0
 #define LED1_INTERRUPT_MODE_BLINK    1
 #define LED1_INTERRUPT_MODE_NEUTRAL  2
-#define LED1_INTERRUPT_MODE_KIT      3
+#define LED1_INTERRUPT_MODE_KITT     3
 
 // TODO: Permitir establecer mediante comandos serie
 // Leds Array Config
@@ -12,6 +14,8 @@ const uint8_t DEFAULT_LED_ARRAY_SIZE     = 12;
 const uint8_t DEFAULT_LED_ARRAY_PIN      = 6;
 const uint8_t DEFAULT_LED_BLINK_MILLIS   = 100;
 const uint8_t DEFAULT_LED_NEUTRAL_MILLIS = 250;
+const uint8_t DEFAULT_LED_KITT_MILLIS    = 100;
+const uint8_t DEFAULT_LED_KITT_LEN       = 3;
 
 
 // Adafruit leds controller - Necesario instanciar la variable? 
@@ -32,6 +36,10 @@ volatile uint8_t ledsBlinkState;
 volatile unsigned long lastNeutralTime;
 volatile uint8_t ledsNeutralState;
 
+// Leds Kitt Control
+volatile unsigned long lastKittTime;
+volatile int8_t ledsKittState;
+volatile int8_t ledsKittDirection;
 
 
 
@@ -57,7 +65,7 @@ void setup() {
   // Si ya se ha instanciado con estos valores ...
   leds.setPin(DEFAULT_LED_ARRAY_PIN);
   leds.setNumPixels(DEFAULT_LED_ARRAY_SIZE);
-  leds.setBrightness(50);
+  leds.setBrightness(LE1_DEFAULT_BRIGHTNESS);
   clearLedArray();
   leds.show();
   
@@ -163,7 +171,19 @@ uint8_t cmdSet(char* v) {
       nLeds1Active      = 0;
       lastNLeds1Active  = 1; // Diferente del ultimo para que lo trate la interrupcion. Mejorar.
     }
-    
+   
+  // Kitt Mode
+  } else if(strncmp(v,"L1KITT=",7) == 0){
+    if(atoi(v+7) == 1){
+      leds1Mode          = LED1_INTERRUPT_MODE_KITT;
+      lastKittTime       = millis();
+      ledsKittState      = -3;
+      ledsKittDirection  = 1;
+    }else{
+      leds1Mode         = LED1_INTERRUPT_MODE_NONE;      
+      nLeds1Active      = 0;
+      lastNLeds1Active  = 1; // Diferente del ultimo para que lo trate la interrupcion. Mejorar.
+    }
   // Default error
   } else {
     return 1;
@@ -187,7 +207,7 @@ uint8_t cmdHelp() {
 //-------------------
 
 void loadLedArray(uint8_t numLeds){
-  int i;
+  uint8_t i;
   
   clearLedArray();
   for(i = 0; i < numLeds && i < DEFAULT_LED_ARRAY_SIZE; i++){
@@ -203,7 +223,7 @@ void loadLedArray(uint8_t numLeds){
 
 
 void loadLedNeutralArray(uint8_t numLeds, uint8_t phase){
-  int i;
+  uint8_t i;
   
   clearLedArray();
   for(i = 0; i < numLeds && i < DEFAULT_LED_ARRAY_SIZE; i++){
@@ -215,6 +235,25 @@ void loadLedNeutralArray(uint8_t numLeds, uint8_t phase){
       }else{
         leds.setPixelColor(i, '\x00', '\x00', '\xff');
       }
+    }
+  }  
+}
+
+
+void loadLedKittArray(uint8_t numLeds, int8_t phase, int8_t dir){
+  uint8_t i;
+  uint8_t nLed;
+
+  clearLedArray();
+
+  for (i = 0; i < DEFAULT_LED_KITT_LEN; i++){
+    if(dir == 1)
+      nLed = phase + i;
+    else 
+      nLed = phase - i;
+      
+    if(nLed >= 0 && nLed < DEFAULT_LED_ARRAY_SIZE){
+      leds.setPixelColor(nLed, '\xff', '\x00', '\x00');        
     }
   }  
 }
@@ -274,7 +313,21 @@ void interruptCallback(void){
 //    sei();
   }
   
-  
+   // Leds Kitt
+  if(leds1Mode == LED1_INTERRUPT_MODE_KITT && abs(currentTime-lastKittTime) > DEFAULT_LED_KITT_MILLIS && DEFAULT_LED_KITT_LEN < DEFAULT_LED_ARRAY_SIZE){
+    lastKittTime = currentTime;
+    
+    if(ledsKittState <= -3 && ledsKittDirection == -1){
+      ledsKittDirection = 1;
+    } else if(ledsKittState >= (DEFAULT_LED_ARRAY_SIZE + DEFAULT_LED_KITT_LEN) && ledsKittDirection == 1) {
+      ledsKittDirection = -1;      
+    }
+    
+    loadLedKittArray(DEFAULT_LED_ARRAY_SIZE, ledsKittState, ledsKittDirection);
+    ledsKittState = ledsKittState + ledsKittDirection;
+    
+    leds.show();
+  }
 }
 
 
