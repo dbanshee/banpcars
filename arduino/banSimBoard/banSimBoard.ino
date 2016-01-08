@@ -446,7 +446,7 @@ void refreshCallback(void){
     loadLedNeutralArray(DEFAULT_LED_ARRAY_SIZE, ledsNeutralState);  
     
     if(ledsNeutralState == 0){
-//        ledsNeutralState = 1;
+       ledsNeutralState = 1;
     }else{
        ledsNeutralState = 0;
     }
