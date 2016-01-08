@@ -1,7 +1,34 @@
+/*
+ * BanSimBoard - Banshee 2016
+ * 
+ * Controlador sobre Arduino Pro Micro (Leonardo)
+ * para control de BanSim
+ * 
+ * Componentes
+ * 
+ *  - Array Leds principal para rpms
+ *  - Doble array de leds para flags
+ *  - Tacometro
+ *  - Botonera
+ *  - Freno de mano
+ */
+
 #include <Adafruit_NeoPixel.h>
 #include <TimerThree.h>
+#include <TimerOne.h>
 
-#define LE1_DEFAULT_BRIGHTNESS       25
+#define BANSIMBOARD_VERSION           0.7
+
+// Input Modes
+#define INPUT_MODE_ASCII              0
+#define INPUT_MODE_BINARY             1
+
+// Led1 Modes
+#define LED1_INTERRUPT_MODE_NONE      0
+#define LED1_INTERRUPT_MODE_BLINK     1
+#define LED1_INTERRUPT_MODE_NEUTRAL   2
+#define LED1_INTERRUPT_MODE_KIT       3
+#define LED1_DEFAULT_BRIGHTNESS       25
 
 #define LED1_INTERRUPT_MODE_NONE     0
 #define LED1_INTERRUPT_MODE_BLINK    1
@@ -18,15 +45,41 @@ const uint8_t DEFAULT_LED_KITT_MILLIS    = 100;
 const uint8_t DEFAULT_LED_KITT_LEN       = 3;
 
 
-// Adafruit leds controller - Necesario instanciar la variable? 
-Adafruit_NeoPixel leds(DEFAULT_LED_ARRAY_SIZE, DEFAULT_LED_ARRAY_PIN);
+// Timers Default periods
+#define REFRESH_TIMER_MICROSECS       1500L
+#define TACHOMETER_TIMER_MICROSECS    3000L
 
+// Led1 Config
+#define DEFAULT_LED_ARRAY_PIN         6
+#define DEFAULT_LED_ARRAY_SIZE        12
+#define DEFAULT_LED_BLINK_MILLIS      100L
+#define DEFAULT_LED_NEUTRAL_MILLIS    250L
+
+// Tachometer Config
+#define DEFAULT_TACHOMETER_ARRAY_PIN  5
+#define TACHOMETER_MAX_RPMS           11000
+
+
+
+//////////////
+// Constants 
+//////////////
+
+// Leds Array Config
+const uint8_t LED_ARRAY_SIZE        = DEFAULT_LED_ARRAY_SIZE;
+const uint8_t LED_ARRAY_PIN         = DEFAULT_LED_ARRAY_PIN;
+
+// Tachometer config
+const uint8_t TACHOMETER_ARRAY_PIN  = DEFAULT_TACHOMETER_ARRAY_PIN;
+
+///////////////////
+// Volatile Vars
+///////////////////
 
 // Leds1 General Vars
 volatile uint8_t leds1Mode;
 volatile uint8_t nLeds1Active;
 volatile uint8_t lastNLeds1Active;
-
 
 // Leds Blink Control
 volatile unsigned long lastBlinkTime;
@@ -41,12 +94,22 @@ volatile unsigned long lastKittTime;
 volatile int8_t ledsKittState;
 volatile int8_t ledsKittDirection;
 
+////////////////
+// Global Vars
+////////////////
 
+// Adafruit leds controller - Necesario instanciar la variable? 
+Adafruit_NeoPixel leds(DEFAULT_LED_ARRAY_SIZE, DEFAULT_LED_ARRAY_PIN);
 
-// Array para la lectura de comandos
+uint8_t inputMode = INPUT_MODE_ASCII;
+
+// Array para la lectura de comandos ASCII
 char    cmd[16];
 uint8_t cmdlen = 0;
 uint8_t echo   = 0;
+
+// Array bytes para la lectura de comandos binarios
+// TODO: ...
 
 
 /* 
@@ -55,17 +118,35 @@ uint8_t echo   = 0;
 void setup() {
   int i;
   
-  // put your setup code here, to run once:
+  // Serial Initialization
   Serial.begin(9600);
   
-  // Inicializacion de Timers
-  Timer3.initialize(1500);
-  Timer3.attachInterrupt(interruptCallback);
+  // Generic set pin mode
+  for(i= 2; i<=16; i++) {
+    pinMode(i, OUTPUT);
+    digitalWrite(i, HIGH); // Set pull up resistor
+  }
   
-  // Si ya se ha instanciado con estos valores ...
+  ////////////////////////////
+  // Inicializacion de Timers
+  ////////////////////////////
+  
+  // Timer 1. Rutina de refresco
+
+  Timer1.initialize(REFRESH_TIMER_MICROSECS);
+  Timer1.attachInterrupt(refreshCallback);
+
+  // Timer 3. Tacometro
+//  Timer3.initialize(TACHOMETER_TIMER_MICROSECS);
+//  Timer3.initialize(calculateTachPWMPeriod(1000));
+  Timer3.initialize(5454L);
+  Timer3.pwm(DEFAULT_TACHOMETER_ARRAY_PIN, 512);
+  
+  
+  // Initializacion de array de leds
   leds.setPin(DEFAULT_LED_ARRAY_PIN);
   leds.setNumPixels(DEFAULT_LED_ARRAY_SIZE);
-  leds.setBrightness(LE1_DEFAULT_BRIGHTNESS);
+  leds.setBrightness(LED1_DEFAULT_BRIGHTNESS);
   clearLedArray();
   leds.show();
   
@@ -74,8 +155,7 @@ void setup() {
   
   // Leds1 General Vars
   nLeds1Active = lastNLeds1Active = ledsBlinkState = 0;
-    
-  //randomSeed(analogRead(0));
+  
 }
 
 
@@ -83,17 +163,30 @@ void setup() {
  * Main Loop
  */
 void loop() {
+  //delay(1000);
+  //Timer3.setPeriod(6000000L / (int) 1800);
+  //Timer3.restart();
+  
 
   // Read Command. No Block
-  if(readCommand()){
-    executeCommand();
-  }   
+  if(inputMode == INPUT_MODE_ASCII) {
+    if(readASCIICommand()){
+      executeASCIICommand();
+    }   
+  } else {
+
+//    if(readBinaryCommand()){
+//      executeBinaryCommand();
+//    }
+
+  }
+
 }
 
 /*
- * Reads serial port command
+ * Reads serial port ASCII command
  */
-boolean readCommand() {
+boolean readASCIICommand() {
   char c;
   while(Serial.available() > 0) {
     c = Serial.read();
@@ -110,9 +203,9 @@ boolean readCommand() {
 }
 
 /*
- * Execute Command
+ * Execute ASCII command
  */
-void executeCommand() {
+void executeASCIICommand() {
   uint8_t error;
   cmd[cmdlen] = '\0';
   
@@ -123,8 +216,10 @@ void executeCommand() {
   }
   
   if(strcmp(cmd,"VERSION") == 0) {
-    error = 0;
-  }else if(strncmp(cmd,"SET ", 4) == 0) {
+    error = cmdVersion();
+  } else if (strcmp(cmd,"ECHO") == 0) {
+    error = cmdEcho();
+  } else if(strncmp(cmd,"SET ", 4) == 0) {
     error = cmdSet(cmd+4);
   } else if(strcmp(cmd,"HELP") == 0) {
     error = cmdHelp();
@@ -132,21 +227,27 @@ void executeCommand() {
     error = 1;
   }
   
-  if(error == 0) {
-    Serial.println("OK");
-  } else {
-    Serial.println("ERROR");
+  if(echo) {
+    if(error == 0) {
+      Serial.println("OK");
+    } else {
+      Serial.println("ERROR");
+    }  
   }
   cmdlen = 0;
+  
+  Serial.flush();
 }
 
 
+/*
+ * Parsea y ejecuta un comando ASCII
+ */
 uint8_t cmdSet(char* v) {
   
   // Leds Number MODE
   if(strncmp(v,"L1N=",4) == 0) {
-    leds1Mode = LED1_INTERRUPT_MODE_NONE;
-    nLeds1Active = atoi(v+4);   
+    setLeds1(atoi(v+4));
     
 // 7 Segments     
 //  } else if(strncmp(v,"SEG1=",5) == 0) {
@@ -154,57 +255,164 @@ uint8_t cmdSet(char* v) {
 
   // Blink Mode
   } else if(strncmp(v,"L1BLINK=",8) == 0){
-    if(atoi(v+8) == 1){
-      leds1Mode = LED1_INTERRUPT_MODE_BLINK;
-      lastBlinkTime = millis();
-    }else{
-      leds1Mode = LED1_INTERRUPT_MODE_NONE;      
-    }
-    
+    setLeds1Blink(atoi(v+8));
+
   // Neutral Mode
   } else if(strncmp(v,"L1NEUTRAL=",10) == 0){
-    if(atoi(v+10) == 1){
-      leds1Mode = LED1_INTERRUPT_MODE_NEUTRAL;
-      lastNeutralTime = millis();
-    }else{
-      leds1Mode         = LED1_INTERRUPT_MODE_NONE;      
-      nLeds1Active      = 0;
-      lastNLeds1Active  = 1; // Diferente del ultimo para que lo trate la interrupcion. Mejorar.
-    }
-   
+    setNeutral(atoi(v+10));
+    
   // Kitt Mode
   } else if(strncmp(v,"L1KITT=",7) == 0){
-    if(atoi(v+7) == 1){
-      leds1Mode          = LED1_INTERRUPT_MODE_KITT;
-      lastKittTime       = millis();
-      ledsKittState      = -3;
-      ledsKittDirection  = 1;
-    }else{
-      leds1Mode         = LED1_INTERRUPT_MODE_NONE;      
-      nLeds1Active      = 0;
-      lastNLeds1Active  = 1; // Diferente del ultimo para que lo trate la interrupcion. Mejorar.
-    }
+    setKitt(atoi(v+7));
+     
+  // Tachometer
+  } else if(strncmp(v,"TC=",3) == 0){
+    Serial.print(atoi(v+3));
+    setTachometer(atoi(v+3));
+    
   // Default error
   } else {
     return 1;
   }
-  
-  
+  return 0;
+}
+
+
+////////////////////////////
+// Manejadores de comandos
+////////////////////////////
+
+/* 
+ * Establece la tira de leds1 a 'numLeds'
+ */
+void setLeds1(uint8_t numLeds) {
+   leds1Mode    = LED1_INTERRUPT_MODE_NONE;
+   nLeds1Active = numLeds;   
+}
+
+/*
+ * Activa/Desactiva el parpadeo de leds1 
+ * 
+ * Cualquier otro comando sobre leds1 desactivara el parpadeo
+ */
+void setLeds1Blink(uint8_t blink) {
+  if(blink == 1){
+    leds1Mode     = LED1_INTERRUPT_MODE_BLINK;
+    lastBlinkTime = millis();
+  }else{
+    leds1Mode = LED1_INTERRUPT_MODE_NONE;      
+  }
+}
+
+/*
+ * Activa/Desactica el modo neutral de leds1
+ * 
+ * Cualquier otro comando sobre leds1 desactivara el modo neutral
+ * Establece el numero de leds activos a 0. 
+ */
+void setNeutral(uint8_t neutral) {
+  if(neutral == 1){
+    leds1Mode       = LED1_INTERRUPT_MODE_NEUTRAL;
+    lastNeutralTime = millis();
+  }else{
+    leds1Mode         = LED1_INTERRUPT_MODE_NONE;      
+    nLeds1Active      = 0;
+    lastNLeds1Active  = 1; // Diferente del ultimo para que lo trate la interrupcion. Mejorar.
+  }
+}
+
+/*
+ * Activa/Desactica el modo neutral de leds1
+ * 
+ * Cualquier otro comando sobre leds1 desactivara el modo neutral
+ * Establece el numero de leds activos a 0. 
+ */
+void setKitt(uint8_t kitt) {
+ if(kitt == 1){
+    leds1Mode          = LED1_INTERRUPT_MODE_KITT;
+    lastKittTime       = millis();
+    ledsKittState      = -3;
+    ledsKittDirection  = 1;
+  }else{
+    leds1Mode         = LED1_INTERRUPT_MODE_NONE;      
+    nLeds1Active      = 0;
+    lastNLeds1Active  = 1; // Diferente del ultimo para que lo trate la interrupcion. Mejorar.
+  }
+}
+
+/*
+ * Establece la señal de tacometro a las rpms indicadas.
+ * 
+ * Usado Timer3
+ */
+void setTachometer(int rpms) {
+  //if(rpms >= 0 && rpms <= TACHOMETER_MAX_RPMS) {
+    long period = calculateTachPWMPeriod(rpms);
+    
+    if(echo){
+      Serial.print("Set Period : ");
+      Serial.println((long) period);
+    }
+    
+    //Timer3.setPeriod(period);
+//    Timer3.setPeriod(6000000L / 1800);
+//    Timer3.setPeriod(period);
+//    Timer3.restart();
+    
+    Timer3.initialize(period);
+    Timer3.pwm(DEFAULT_TACHOMETER_ARRAY_PIN, 512);
+    
+  //}
+}
+
+/*
+ * Help Handler
+ */
+uint8_t cmdHelp() {
+  Serial.print("\n\nBanSimBoard - Help  Version : ");
+  Serial.println(BANSIMBOARD_VERSION);
+  Serial.println(" Commands :\n");
+  Serial.println("  HELP\\r      : Show this help");
+  Serial.println("  ECHO\\r      : Enable\Disable echo mode");
+  Serial.println("  VERSION\\r   : Show Version");
+  Serial.println('\n');
+  Serial.println(" ASCII MODE :");
+  Serial.println("    SET <OPERATION>=<VALUE>");
+  Serial.println('\n');
+  Serial.println("      L1N=<N>         : Turn on Led1 N Leds");
+  Serial.println("      L1BLINK=<0|1>   : Turn on/off Led1 Blink");
+  Serial.println("      L1NEUTRAL=<0|1> : Turn on/off Led1 Neutral");
+  Serial.println("      KITT=<0|1>      : Turn on/off Kitt Mode");
+  Serial.println("      TC=<RPM>        : Set tachometer at RPM");
   return 0;
 }
 
 
 /*
- * cmdHelp
+ * Version Handler
  */
-uint8_t cmdHelp() {
-  Serial.println("BanSimBoard - Help");
+uint8_t cmdVersion() {
+  Serial.print("\n\nBanSimBoard - Version : ");
+  Serial.println(BANSIMBOARD_VERSION);
   return 0;
 }
+
+/*
+ * Echo Handler
+ */
+uint8_t cmdEcho() {
+  echo = !echo;
+  return 0;
+}
+
 
 //-------------------
 // Led Array Funcs
 //-------------------
+
+/*
+ * Enciende 'numLeds' de leds segun el esquema de color predefinido
+ */
 
 void loadLedArray(uint8_t numLeds){
   uint8_t i;
@@ -221,7 +429,9 @@ void loadLedArray(uint8_t numLeds){
   }  
 }
 
-
+/*
+ * Establece la tira de leds en modo neutral en funcion de 'phase' (leds pares o impares)
+ */
 void loadLedNeutralArray(uint8_t numLeds, uint8_t phase){
   uint8_t i;
   
@@ -260,6 +470,10 @@ void loadLedKittArray(uint8_t numLeds, int8_t phase, int8_t dir){
 
 
 
+
+/*
+ * Apaga la tira de leds
+ */
 void clearLedArray(){
   int i;  
   for(i = 0; i < DEFAULT_LED_ARRAY_SIZE; i++)
@@ -267,10 +481,24 @@ void clearLedArray(){
 }
 
 
+/*
+ * Calcula el periodo de la señal PWM equivalente para las revoluciones dadas.
+ */
+long calculateTachPWMPeriod(int rpm) {
+  Serial.print("Rpm : ");
+  Serial.print(rpm);
+  // 1 / (x / 60) * 10^6
+  // 6.10^7  / x
+  return 60000000L / rpm;
+}
 
-// Interrupcion de refresco (libreria Timers)
 
-void interruptCallback(void){
+/*
+ * Refresh Callback
+ */
+
+void refreshCallback(void){
+
   unsigned long currentTime = millis();
   
   // Leds Array Refresh
@@ -280,7 +508,7 @@ void interruptCallback(void){
     lastNLeds1Active = nLeds1Active;
   } 
   
-  
+
   // Leds Blink
   if(leds1Mode == LED1_INTERRUPT_MODE_BLINK && abs(currentTime-lastBlinkTime) > DEFAULT_LED_BLINK_MILLIS){
     lastBlinkTime = currentTime;
@@ -328,6 +556,7 @@ void interruptCallback(void){
     
     leds.show();
   }
+
 }
 
 
