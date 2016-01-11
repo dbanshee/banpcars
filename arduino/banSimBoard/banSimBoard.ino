@@ -44,6 +44,8 @@ const uint8_t DEFAULT_LED_NEUTRAL_MILLIS = 250;
 const uint8_t DEFAULT_LED_KITT_MILLIS    = 100;
 const uint8_t DEFAULT_LED_KITT_LEN       = 3;
 
+// Serial Config
+#define SERIAL_SPEED                  9600
 
 // Timers Default periods
 #define REFRESH_TIMER_MICROSECS       1500L
@@ -58,6 +60,7 @@ const uint8_t DEFAULT_LED_KITT_LEN       = 3;
 // Tachometer Config
 #define DEFAULT_TACHOMETER_ARRAY_PIN  5
 #define TACHOMETER_MAX_RPMS           11000
+#define TACHOMETER_PWM_DUTY           512
 
 
 
@@ -119,9 +122,9 @@ void setup() {
   int i;
   
   // Serial Initialization
-  Serial.begin(9600);
+  Serial.begin(SERIAL_SPEED);
   
-  // Generic set pin mode
+  // Generic set pin mode. Pins 0 y 1 reserved to USB-Serial port.
   for(i= 2; i<=16; i++) {
     pinMode(i, OUTPUT);
     digitalWrite(i, HIGH); // Set pull up resistor
@@ -132,16 +135,16 @@ void setup() {
   ////////////////////////////
   
   // Timer 1. Rutina de refresco
-
   Timer1.initialize(REFRESH_TIMER_MICROSECS);
   Timer1.attachInterrupt(refreshCallback);
 
   // Timer 3. Tacometro
-//  Timer3.initialize(TACHOMETER_TIMER_MICROSECS);
-//  Timer3.initialize(calculateTachPWMPeriod(1000));
-  Timer3.initialize(5454L);
-  Timer3.pwm(DEFAULT_TACHOMETER_ARRAY_PIN, 512);
-  
+  Timer3.initialize(calculateTachPWMPeriod(TACHOMETER_MAX_RPMS));
+  Timer3.pwm(DEFAULT_TACHOMETER_ARRAY_PIN, TACHOMETER_PWM_DUTY);
+  delay(2000L);
+  Timer3.initialize(calculateTachPWMPeriod(1000));
+  Timer3.pwm(DEFAULT_TACHOMETER_ARRAY_PIN, TACHOMETER_PWM_DUTY);
+    
   
   // Initializacion de array de leds
   leds.setPin(DEFAULT_LED_ARRAY_PIN);
@@ -163,10 +166,6 @@ void setup() {
  * Main Loop
  */
 void loop() {
-  //delay(1000);
-  //Timer3.setPeriod(6000000L / (int) 1800);
-  //Timer3.restart();
-  
 
   // Read Command. No Block
   if(inputMode == INPUT_MODE_ASCII) {
@@ -217,8 +216,6 @@ void executeASCIICommand() {
   
   if(strcmp(cmd,"VERSION") == 0) {
     error = cmdVersion();
-  } else if (strcmp(cmd,"ECHO") == 0) {
-    error = cmdEcho();
   } else if(strncmp(cmd,"SET ", 4) == 0) {
     error = cmdSet(cmd+4);
   } else if(strcmp(cmd,"HELP") == 0) {
@@ -244,9 +241,12 @@ void executeASCIICommand() {
  * Parsea y ejecuta un comando ASCII
  */
 uint8_t cmdSet(char* v) {
-  
+ 
+  if(strncmp(v,"ECHO=",5) == 0) {
+    setEcho(atoi(v+5));
+
   // Leds Number MODE
-  if(strncmp(v,"L1N=",4) == 0) {
+  } else if(strncmp(v,"L1N=",4) == 0) {
     setLeds1(atoi(v+4));
     
 // 7 Segments     
@@ -282,6 +282,16 @@ uint8_t cmdSet(char* v) {
 // Manejadores de comandos
 ////////////////////////////
 
+
+/*
+ * Echo Handler
+ */
+void setEcho(uint8_t echoMode) {
+  echo = echoMode;
+}
+
+
+
 /* 
  * Establece la tira de leds1 a 'numLeds'
  */
@@ -312,8 +322,8 @@ void setLeds1Blink(uint8_t blink) {
  */
 void setNeutral(uint8_t neutral) {
   if(neutral == 1){
-    leds1Mode       = LED1_INTERRUPT_MODE_NEUTRAL;
-    lastNeutralTime = millis();
+    leds1Mode         = LED1_INTERRUPT_MODE_NEUTRAL;
+    lastNeutralTime   = millis();
   }else{
     leds1Mode         = LED1_INTERRUPT_MODE_NONE;      
     nLeds1Active      = 0;
@@ -346,7 +356,7 @@ void setKitt(uint8_t kitt) {
  * Usado Timer3
  */
 void setTachometer(int rpms) {
-  //if(rpms >= 0 && rpms <= TACHOMETER_MAX_RPMS) {
+  if(rpms >= 0 && rpms <= TACHOMETER_MAX_RPMS) {
     long period = calculateTachPWMPeriod(rpms);
     
     if(echo){
@@ -354,15 +364,20 @@ void setTachometer(int rpms) {
       Serial.println((long) period);
     }
     
-    //Timer3.setPeriod(period);
-//    Timer3.setPeriod(6000000L / 1800);
-//    Timer3.setPeriod(period);
-//    Timer3.restart();
+    /*    
+     * BUG: La libreria no establece correctamente un nuevo periodo para determinados valores 
+            en función del periodo con el que fuera inicializada.
+
+            Ej: Inicializada a 11000 rpms no funciona para valores entre 2000 y 7000.
+
+    Timer3.setPeriod(period);
+    Timer3.restart();
+    */
     
+    // Debido al bug anterior se realiza siempre una inicializacion del timer
     Timer3.initialize(period);
-    Timer3.pwm(DEFAULT_TACHOMETER_ARRAY_PIN, 512);
-    
-  //}
+    Timer3.pwm(DEFAULT_TACHOMETER_ARRAY_PIN, 512);    
+  }
 }
 
 /*
@@ -372,9 +387,9 @@ uint8_t cmdHelp() {
   Serial.print("\n\nBanSimBoard - Help  Version : ");
   Serial.println(BANSIMBOARD_VERSION);
   Serial.println(" Commands :\n");
-  Serial.println("  HELP\\r      : Show this help");
-  Serial.println("  ECHO\\r      : Enable\Disable echo mode");
-  Serial.println("  VERSION\\r   : Show Version");
+  Serial.println("  HELP\\r             : Show this help");
+  Serial.println("  ECHO=<0|1>\\r       : Turn on/off echo mode");
+  Serial.println("  VERSION\\r          : Show Version");
   Serial.println('\n');
   Serial.println(" ASCII MODE :");
   Serial.println("    SET <OPERATION>=<VALUE>");
@@ -396,15 +411,6 @@ uint8_t cmdVersion() {
   Serial.println(BANSIMBOARD_VERSION);
   return 0;
 }
-
-/*
- * Echo Handler
- */
-uint8_t cmdEcho() {
-  echo = !echo;
-  return 0;
-}
-
 
 //-------------------
 // Led Array Funcs
@@ -483,6 +489,8 @@ void clearLedArray(){
 
 /*
  * Calcula el periodo de la señal PWM equivalente para las revoluciones dadas.
+ *
+ * Modo del tacometro: 2 cilindros. Una revolucion del cigueñal corresponde a un ciclo completo del motor.
  */
 long calculateTachPWMPeriod(int rpm) {
   Serial.print("Rpm : ");
