@@ -10,6 +10,7 @@
 #define LED_RPM_START_RATIO         0.85
 #define LED_BLINK_DELAY_MILLIS      250L
 #define LED_NEUTRAL_DELAY_MILLIS    3000L
+#define TACHOMETER_DELAY_MILLIS     250L
 
 
 static int  lastGameState   = 0;
@@ -26,6 +27,8 @@ static int neutralOn = 0;   // 3 estados. 0=OFF, 1=MARCADO, 2=ON
 static long startNeutralTime;
 
 static int kittOn = 0;
+
+static long lastTachometer = 0;
 
 
 void loadDefaultSimCtrlContext(simCtrlContext* ctx){
@@ -191,10 +194,26 @@ void refresh8Segments(simCtrlContext* ctx){
     }
 }
 
+void refreshTachometer(simCtrlContext* ctx) {
+    char buff [8];
+    
+    long currentTime = current_timestamp();
+    
+    if(currentTime - lastTachometer > TACHOMETER_DELAY_MILLIS){
+        lastTachometer = currentTime;
+        
+        int rpms = ctx->pCarsSrcCtx->pCarsSHM->mRpm;
+        itoa(rpms, buff, 10);
+        
+        sendSimBoardCmd(&ctx->serialCtx, "TC", buff);
+    }
+}
+
 
 int refreshMainPanel(simCtrlContext* ctx){
-    refreshLEDBar(ctx);
+    //refreshLEDBar(ctx);
 //    refresh8Segments(ctx);
+    refreshTachometer(ctx);
 }
 
 
@@ -208,6 +227,6 @@ int sendSimBoardCmd(serialContext* ctx, char* cmd, char* value) {
     blog(LOG_TRACE, "Sended (%d), '%s'", strlen(buff), buff);
     writeSerialData(ctx, buff, strlen(buff));
     
-    readed = readSerialData(ctx, buff, i);
+    //readed = readSerialData(ctx, buff, i);
     return 0;
 }

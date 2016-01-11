@@ -28,14 +28,16 @@
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp -d 30 -rest 8080 -com 7</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 100</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 200</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 300</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}"  -rest 8080 -com 7</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 150</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 250</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -d 250</runcommandpicklistitem>
         </runcommandpicklist>
         <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -d 250</runcommand>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 13 -d 250</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 13 -d 200</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 13 -d 700</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 13 -d 100</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 13 -d 10</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 13 -d 10</runcommand>
         <rundir></rundir>
         <buildfirst>true</buildfirst>
         <terminal-type>0</terminal-type>
