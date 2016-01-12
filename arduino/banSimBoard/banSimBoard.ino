@@ -23,6 +23,14 @@
 #define INPUT_MODE_ASCII              0
 #define INPUT_MODE_BINARY             1
 
+// Binary Commands
+#define BINARY_CMD_CHANGE_MODE        0x00
+#define BINARY_CMD_LED1               0x01
+#define BINARY_CMD_BLINK              0x02
+#define BINARY_CMD_NEUTRAL            0x03
+#define BINARY_CMD_KITT               0x04
+#define BINARY_CMD_TC                 0x05
+
 // Led1 Modes
 #define LED1_INTERRUPT_MODE_NONE      0
 #define LED1_INTERRUPT_MODE_BLINK     1
@@ -104,12 +112,13 @@ volatile int8_t ledsKittDirection;
 // Adafruit leds controller - Necesario instanciar la variable? 
 Adafruit_NeoPixel leds(DEFAULT_LED_ARRAY_SIZE, DEFAULT_LED_ARRAY_PIN);
 
-uint8_t inputMode = INPUT_MODE_ASCII;
+//uint8_t inputMode = INPUT_MODE_ASCII;
+uint8_t inputMode = INPUT_MODE_BINARY;
 
 // Array para la lectura de comandos ASCII
 char    cmd[16];
 uint8_t cmdlen = 0;
-uint8_t echo   = 0;
+uint8_t echo   = 1;
 
 // Array bytes para la lectura de comandos binarios
 // TODO: ...
@@ -139,10 +148,10 @@ void setup() {
   Timer1.attachInterrupt(refreshCallback);
 
   // Timer 3. Tacometro
-  Timer3.initialize(calculateTachPWMPeriod(TACHOMETER_MAX_RPMS));
+  Timer3.initialize(calculateTachPWMPeriod((uint8_t) TACHOMETER_MAX_RPMS));
   Timer3.pwm(DEFAULT_TACHOMETER_ARRAY_PIN, TACHOMETER_PWM_DUTY);
   delay(2000L);
-  Timer3.initialize(calculateTachPWMPeriod(1000));
+  Timer3.initialize(calculateTachPWMPeriod((uint8_t) 0));
   Timer3.pwm(DEFAULT_TACHOMETER_ARRAY_PIN, TACHOMETER_PWM_DUTY);
     
   
@@ -158,7 +167,7 @@ void setup() {
   
   // Leds1 General Vars
   nLeds1Active = lastNLeds1Active = ledsBlinkState = 0;
-  
+
 }
 
 
@@ -173,13 +182,8 @@ void loop() {
       executeASCIICommand();
     }   
   } else {
-
-//    if(readBinaryCommand()){
-//      executeBinaryCommand();
-//    }
-
+    executeBinaryCommand(); // Efficient way. Read and execute.
   }
-
 }
 
 /*
@@ -224,16 +228,71 @@ void executeASCIICommand() {
     error = 1;
   }
   
-  if(echo) {
+  //if(echo) {
     if(error == 0) {
       Serial.println("OK");
     } else {
       Serial.println("ERROR");
-    }  
+    //}  
   }
   cmdlen = 0;
   
   Serial.flush();
+}
+
+/*
+ *  Lee y ehecuta un comando binario.
+ *  
+ *  Un comando binario consta de 2 bytes. <OP><VALUE>
+ */
+boolean executeBinaryCommand(){
+  // Read Operand
+  boolean cmdRes = false;
+  byte op;
+  
+  byte value[2];
+
+  if(Serial.available() < 2){
+    return false;
+  }
+
+  op = Serial.read();
+
+  if(echo) {
+    Serial.print("Binary Op : "); Serial.println(op, DEC);
+  }
+
+  switch(op) {
+    case byte( BINARY_CMD_CHANGE_MODE):
+      //binarySetLeds1();
+      break;
+    case byte(BINARY_CMD_LED1):
+      binarySetLeds1();
+      break;
+    case byte(BINARY_CMD_BLINK):
+      binarySetLeds1Blink();
+      break;
+    case byte(BINARY_CMD_NEUTRAL):
+      binarySetNeutral();
+      break;
+    case byte(BINARY_CMD_KITT):
+      binarySetKitt();
+      break;
+    case byte(BINARY_CMD_TC):
+      binarySetTachometer();
+      break;
+    default: 
+      Serial.println("Comando no reconocido.");
+      cmdRes = true;
+  }
+
+  while(Serial.available() > 0){
+    if(Serial.read() == '\r') break;
+  }
+
+  Serial.write('\n');
+  Serial.flush();
+  return cmdRes;
 }
 
 
@@ -291,6 +350,16 @@ void setEcho(uint8_t echoMode) {
 }
 
 
+void binarySetLeds1(){
+  Serial.println("binarySetLeds");
+  if(Serial.available() < 1)
+    return;
+
+  unsigned int value = Serial.read();
+  if(echo) Serial.print("Value : "); Serial.println(value, DEC);
+
+  setLeds1(value);
+}
 
 /* 
  * Establece la tira de leds1 a 'numLeds'
@@ -298,6 +367,17 @@ void setEcho(uint8_t echoMode) {
 void setLeds1(uint8_t numLeds) {
    leds1Mode    = LED1_INTERRUPT_MODE_NONE;
    nLeds1Active = numLeds;   
+}
+
+
+void binarySetLeds1Blink(){
+  if(Serial.available() < 1)
+    return;
+
+  unsigned int value = Serial.read();
+  if(echo) Serial.print("Value : "); Serial.println(value, DEC);
+
+  setLeds1Blink(value);
 }
 
 /*
@@ -312,6 +392,16 @@ void setLeds1Blink(uint8_t blink) {
   }else{
     leds1Mode = LED1_INTERRUPT_MODE_NONE;      
   }
+}
+
+void binarySetNeutral(){
+  if(Serial.available() < 1)
+    return;
+
+  unsigned int value = Serial.read();
+  if(echo) Serial.print("Value : "); Serial.println(value, DEC);
+
+  setNeutral(value);
 }
 
 /*
@@ -329,6 +419,16 @@ void setNeutral(uint8_t neutral) {
     nLeds1Active      = 0;
     lastNLeds1Active  = 1; // Diferente del ultimo para que lo trate la interrupcion. Mejorar.
   }
+}
+
+void binarySetKitt(){
+  if(Serial.available() < 1)
+    return;
+
+  unsigned int value = Serial.read();
+  if(echo) Serial.print("Value : "); Serial.println(value, DEC);
+
+  setKitt(value);
 }
 
 /*
@@ -350,12 +450,25 @@ void setKitt(uint8_t kitt) {
   }
 }
 
+void binarySetTachometer(){
+  if(Serial.available() < 2)
+    return;
+
+  uint16_t value = Serial.read();
+  value =  Serial.read() | value << 8;
+  if(echo) Serial.print("Value : "); Serial.println(value, HEX);
+
+  setTachometer(value);
+}
+
 /*
  * Establece la señal de tacometro a las rpms indicadas.
  * 
  * Usado Timer3
  */
-void setTachometer(int rpms) {
+void setTachometer(uint16_t rpms) {
+  Serial.print("Set TC rpms:"); Serial.print(rpms);
+  
   if(rpms >= 0 && rpms <= TACHOMETER_MAX_RPMS) {
     long period = calculateTachPWMPeriod(rpms);
     
@@ -492,9 +605,7 @@ void clearLedArray(){
  *
  * Modo del tacometro: 2 cilindros. Una revolucion del cigueñal corresponde a un ciclo completo del motor.
  */
-long calculateTachPWMPeriod(int rpm) {
-  Serial.print("Rpm : ");
-  Serial.print(rpm);
+unsigned long calculateTachPWMPeriod(uint16_t rpm) {
   // 1 / (x / 60) * 10^6
   // 6.10^7  / x
   return 60000000L / rpm;
