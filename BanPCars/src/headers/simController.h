@@ -10,7 +10,7 @@
 
 #include "serialwin.h"
 #include <stdbool.h>
-#include "pcarsSource.h"
+#include "simSource.h"
 #include "serialwin.h"
 
 
@@ -20,13 +20,13 @@
 typedef struct simCtrlContext {
     int                 comPort;
     serialContext       serialCtx;
-    pCarsSourceContext* pCarsSrcCtx;
+    simSourceContext*   simSrcCtx;
 } simCtrlContext;
 
 
 void loadDefaultSimCtrlContext(simCtrlContext* ctx);
 void setSimCtrlCOMPort(simCtrlContext* ctx, int comPort);
-void setSimCtrlPCarsSource(simCtrlContext* ctx, pCarsSourceContext * pCarsSrcCtx);
+void setSimCtrlSimSource(simCtrlContext* ctx, simSourceContext* simSrcCtx);
 int  initializetSimCtrlContext(simCtrlContext* ctx);
 void freeSimCtrlContext(simCtrlContext* ctx);
 

@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include "../../ext/SharedMemory.h"
 #include "../headers/serversocket.h"
-#include "../headers/pcarsSource.h"
+#include "../headers/simSource.h"
 #include <microhttpd.h>
 
 #define DEFAULT_REST_LISTEN_PORT 8080
@@ -20,13 +20,13 @@
 typedef struct restWSContext {
     int                 port;
     struct MHD_Daemon*  httpdCtx;
-    pCarsSourceContext* pCarsSrcCtx;
+    simSourceContext*   simSrcCtx;
 } restWSContext;
 
 
 void loadDefaultRestWSContext(restWSContext* ctx);
 void setRestWSPort(restWSContext* ctx, int port);
-void setRestWSSource(restWSContext* ctx, pCarsSourceContext* pCarsSrcCtx);
+void setRestWSSource(restWSContext* ctx, simSourceContext* simSrcCtx);
 int  initializeRestWSContext(restWSContext* ctx);
 void freeRestWSContext(restWSContext* ctx);
 

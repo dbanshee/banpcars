@@ -36,15 +36,16 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 # Object Files
 OBJECTFILES= \
 	${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o \
+	${OBJECTDIR}/src/libs/ACApi.o \
 	${OBJECTDIR}/src/libs/jSon.o \
 	${OBJECTDIR}/src/libs/logger.o \
 	${OBJECTDIR}/src/libs/pCarsDump.o \
 	${OBJECTDIR}/src/libs/pcarsApi.o \
-	${OBJECTDIR}/src/libs/pcarsSource.o \
 	${OBJECTDIR}/src/libs/restWS.o \
 	${OBJECTDIR}/src/libs/serialwin.o \
 	${OBJECTDIR}/src/libs/serversocket.o \
 	${OBJECTDIR}/src/libs/simController.o \
+	${OBJECTDIR}/src/libs/simSource.o \
 	${OBJECTDIR}/src/libs/stringutils.o
 
 
@@ -77,6 +78,11 @@ ${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o: src/BanPCarsServer/banPCarsSer
 	${RM} "$@.d"
 	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/BanPCarsServer/banPCarsServer.o src/BanPCarsServer/banPCarsServer.c
 
+${OBJECTDIR}/src/libs/ACApi.o: src/libs/ACApi.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/ACApi.o src/libs/ACApi.c
+
 ${OBJECTDIR}/src/libs/jSon.o: src/libs/jSon.c 
 	${MKDIR} -p ${OBJECTDIR}/src/libs
 	${RM} "$@.d"
@@ -97,11 +103,6 @@ ${OBJECTDIR}/src/libs/pcarsApi.o: src/libs/pcarsApi.c
 	${RM} "$@.d"
 	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/pcarsApi.o src/libs/pcarsApi.c
 
-${OBJECTDIR}/src/libs/pcarsSource.o: src/libs/pcarsSource.c 
-	${MKDIR} -p ${OBJECTDIR}/src/libs
-	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/pcarsSource.o src/libs/pcarsSource.c
-
 ${OBJECTDIR}/src/libs/restWS.o: src/libs/restWS.c 
 	${MKDIR} -p ${OBJECTDIR}/src/libs
 	${RM} "$@.d"
@@ -121,6 +122,11 @@ ${OBJECTDIR}/src/libs/simController.o: src/libs/simController.c
 	${MKDIR} -p ${OBJECTDIR}/src/libs
 	${RM} "$@.d"
 	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/simController.o src/libs/simController.c
+
+${OBJECTDIR}/src/libs/simSource.o: src/libs/simSource.c 
+	${MKDIR} -p ${OBJECTDIR}/src/libs
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/libs/simSource.o src/libs/simSource.c
 
 ${OBJECTDIR}/src/libs/stringutils.o: src/libs/stringutils.c 
 	${MKDIR} -p ${OBJECTDIR}/src/libs

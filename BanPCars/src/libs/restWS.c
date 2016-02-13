@@ -201,8 +201,8 @@ void setRestWSPort(restWSContext* ctx, int port){
     ctx->port = port;
 }
 
-void setRestWSSource(restWSContext* ctx, pCarsSourceContext* pCarsSrcCtx){
-    ctx->pCarsSrcCtx = pCarsSrcCtx;
+void setRestWSSource(restWSContext* ctx, simSourceContext* simSrcCtx){
+    ctx->simSrcCtx = simSrcCtx;
 }
 
 
@@ -232,7 +232,7 @@ void freeRestWSContext(restWSContext* ctx){
 
 int getFieldsResponse(restWSContext* ctx, jSonDocument* jdoc){
     
-    if(getPCarsSourceFields(ctx->pCarsSrcCtx, jdoc) == -1)
+    if(getSimSourceFields(jdoc) == -1)
         return -1;
     
     return 0;
@@ -259,7 +259,7 @@ int getDataResponse(restWSContext* ctx, jSonDocument* in, jSonDocument* out){
         }
     }
     
-    if(getPCarsData(ctx->pCarsSrcCtx, dataFields, out) == -1)
+    if(getPCarsData(ctx->simSrcCtx, dataFields, out) == -1)
         return -1;
     
     return 0;

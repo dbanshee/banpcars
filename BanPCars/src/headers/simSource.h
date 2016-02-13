@@ -5,15 +5,22 @@
  * Created on 3 de octubre de 2015, 18:31
  */
 
-#ifndef PCARSSOURCE_H
-#define	PCARSSOURCE_H
+#ifndef SIMSOURCE_H
+#define	SIMSOURCE_H
 
 #include <stdbool.h>
 #include <stdio.h>
 #include "../../ext/SharedMemory.h"
 #include "pcarsApi.h"
+#include "ACApi.h"
 #include "pcarsDump.h"
 #include "jSon.h"
+
+enum SIMS {
+    PCARS_GAME,
+    ASSETTO_GAME,
+    IRACING_GAME 
+} SIMS;
 
 typedef struct dataExtension {
     float lastBestLapTime;
@@ -25,8 +32,26 @@ typedef struct pCarsSourceContext {
     SharedMemory*           pCarsSHM;
     pCarsContext*           pCarsCtx;
     pCarsDumpReaderContext* pCarsDumpCtx;
-    dataExtension           dataExt;
+    //dataExtension           dataExt;
 } pCarsSourceContext;
+
+typedef struct assetoSourceContext {
+    aCContext*              acCtx;
+} assetoSourceContext;
+
+typedef struct iRacingSourceContext {
+    // TODO:
+} iRacingSourceContext;
+
+typedef struct simSourceContext {
+    int                     currentGame;
+    dataExtension           dataExt;
+    
+    // Games contexts
+    pCarsSourceContext      pCarsSourceCtx;
+    assetoSourceContext     assettoSourceCtx;
+    iRacingSourceContext    iRacingSourceCtx;
+} simSourceContext;
 
 
 typedef struct jSonData {
@@ -34,13 +59,20 @@ typedef struct jSonData {
     char* jSonResult;
 } jSonData;
 
-void loadDefaultpCarsSourceContext(pCarsSourceContext* ctx);
-void setPCarsSourcePCarsAPI(pCarsSourceContext* ctx, pCarsContext* pCarsCtx);
-void setPCarsSourcePCarsDump(pCarsSourceContext* ctx, pCarsDumpReaderContext* pCarsDumpCtx);
-int  initializePCarsSourceContext(pCarsSourceContext* ctx);
-void freePCarsSourceContext(pCarsSourceContext* ctx);
+void loadDefaultSimSourceContext(simSourceContext* ctx);
+int  initializeSimSourceContext(simSourceContext* ctx);
+void freeSimSourceContext(simSourceContext* ctx);
+int getSimSourceFields(jSonDocument* jSonDoc);
 
-int getPCarsSourceFields(pCarsSourceContext* ctx, jSonDocument* jSonDoc);
+// PCars
+void setSimSourcePCarsAPI(simSourceContext* ctx, pCarsContext* pCarsCtx);
+void setSimSourcePCarsDump(simSourceContext* ctx, pCarsDumpReaderContext* pCarsDumpCtx);
+
+// Assetto
+// TODO:
+
+// iRacing
+// TODO:
 
 
 ////////////
@@ -163,5 +195,14 @@ int   enumPCarsFieldsFromString(const char *s);
 char* enumPCarsFieldsToString(int e);
 
 
-#endif	/* PCARSSOURCE_H */
+int getGameState(simSourceContext* ctx);
+float getSpeed(simSourceContext* ctx);
+float getMaxRpms(simSourceContext* ctx);
+float getRpm(simSourceContext* ctx);
+float getGear(simSourceContext* ctx);
+float getThrottle(simSourceContext* ctx);
+
+
+
+#endif	/* SIMSOURCE_H */
 

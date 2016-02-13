@@ -9,11 +9,12 @@
 #include <stdlib.h>
 #include "../headers/logger.h"
 #include "../headers/pcarsApi.h"
+#include "../headers/ACApi.h"
 #include "../headers/serialwin.h"
 #include "../headers/simController.h"
 #include "../headers/pcarsDump.h"
 #include "../headers/serversocket.h"
-#include "../headers/pcarsSource.h"
+#include "../headers/simSource.h"
 #include "../headers/restWS.h"
 
 #include <termios.h>
@@ -36,16 +37,17 @@ Usage: \n\
 \n\
 banpcars.exe [-r dumpReadFile] [-w dumpWriteFile] [-d startSecs] [-rest port] [-com port] \n\
 \n\
-    -r dumpReadFile : Read dumpFile instead PCars shared memory \n\
+    -g game          : Game [AC|PCARS|IR]\n\
+    -r dumpReadFile  : Read dumpFile instead PCars shared memory \n\
     -w dumpWriteFile : Write dumpFile using active source data. \n\
-    -d startSecs    : Only with -r option. Ignore first 'startSecs' of dumpFile \n\
-    -rest port      : Start Rest Web Service at 'port' to export data at JSON. \n\
-    -com port       : Start Arduino connection at COM 'port'. Only for BanSimBoard. \n\
+    -d startSecs     : Only with -r option. Ignore first 'startSecs' of dumpFile \n\
+    -rest port       : Start Rest Web Service at 'port' to export data at JSON. \n\
+    -com port        : Start Arduino connection at COM 'port'. Only for BanSimBoard. \n\
 \n\
 \n\
 \n\
 Example : \n\
-    banpcars.exe -r dumpSample.dmp -d 20 -rest 8080 -com 7 \n\n\
+    banpcars.exe -g AC -r dumpSample.dmp -d 20 -rest 8080 -com 7 \n\n\
 ";
 
 // Flags
@@ -53,14 +55,16 @@ int flagDumpWrite   = 0;
 int flagDumpRead    = 0;
 int flagSimBoard    = 0;
 int flagRestWS      = 0;
+int game            = PCARS_GAME;
 
 ///////////////////
 // Global Contexts
 ///////////////////
 pCarsContext                pCarsCtx;
+aCContext                   aCCtx;
 pCarsDumpWriterContext      pCarsDumpWriterCtx;
 pCarsDumpReaderContext      pCarsDumpReaderCtx;
-pCarsSourceContext          pCarsSrcCtx;
+simSourceContext            simSourceCtx;
 simCtrlContext              simCtx;
 restWSContext               restWSCtx;
 
@@ -70,7 +74,7 @@ void finishServer(int error){
     freePCarsDumpWriterContext(&pCarsDumpWriterCtx);
     freePCarsDumpReaderContext(&pCarsDumpReaderCtx);
     freeRestWSContext(&restWSCtx);
-    freePCarsSourceContext(&pCarsSrcCtx);
+    freeSimSourceContext(&simSourceCtx);
     freePCarsContext(&pCarsCtx);
     
     exit(error);
@@ -96,6 +100,28 @@ void signalHandler(int sigNum){
 int parseArgs(int argc, char** argv){
     int i;
     for(i = 1; i < argc; i++){
+        
+        // -g game
+        if(strcmp(argv[i], "-g") == 0) {
+            
+            if(argc < i + 1){
+                blog(LOG_ERROR, "Numero incorrecto de argumentos.");
+                return -1;
+            }
+            
+            if(strcmp(argv[i+1], "AC") == 0) {
+                game = ASSETTO_GAME;
+                i++;
+            } else if (strcmp(argv[i+1], "PCARS") == 0) {
+                game = PCARS_GAME;
+                i++;
+            } else {
+                blog(LOG_ERROR, "Juego no reconocido.");
+                return -1;
+            }
+            
+            continue;
+        }
         
         // -w dumpFile
         if(strcmp(argv[i], "-w") == 0) {
@@ -195,7 +221,8 @@ int main(int argc, char** argv) {
     
     // Load default context values
     loadDefaultPCarsContext(&pCarsCtx);
-    loadDefaultpCarsSourceContext(&pCarsSrcCtx);
+    //loadDefaultpCarsSourceContext(&pCarsSrcCtx);
+    loadDefaultSimSourceContext(&simSourceCtx);
     loadDefaultPCarsDumpReaderContext(&pCarsDumpReaderCtx);
     loadDefaultPCarsDumpWriterContext(&pCarsDumpWriterCtx);
     loadDefaultSimCtrlContext(&simCtx);
@@ -236,27 +263,47 @@ int main(int argc, char** argv) {
             finishServer(1);
         }
         
-        setPCarsSourcePCarsDump(&pCarsSrcCtx, &pCarsDumpReaderCtx);
+        setSimSourcePCarsDump(&simSourceCtx, &pCarsDumpReaderCtx);
     } else {
-        blog(LOG_INFO, "Estableciendo conexion con Project Cars ...");
-        int pCarsConnTry = 1;
-        while(pCarsConnTry < PCARS_CONN_RETRIES && initializePCarsContext(&pCarsCtx) != 0){
-
-            blog(LOG_WARN, "No se ha podido establecer conexion con Project Cars. Intento [%d/%d] ...", pCarsConnTry++, PCARS_CONN_RETRIES);
-            Sleep(PCARS_CONN_DELAY_SECS*1000);
-        }
-
-        if(pCarsConnTry >= PCARS_CONN_RETRIES){
-            blog(LOG_ERROR, "Error incializando contexto PCars. Abortando servidor ...");
-            finishServer(1);
-        }
         
-        setPCarsSourcePCarsAPI(&pCarsSrcCtx, &pCarsCtx);
-        blog(LOG_INFO, "Conexion con Project Cars establecida");
+        if(game == PCARS_GAME) {
+        
+            blog(LOG_INFO, "Estableciendo conexion con Project Cars ...");
+            int pCarsConnTry = 1;
+            while(pCarsConnTry < PCARS_CONN_RETRIES && initializePCarsContext(&pCarsCtx) != 0){
+
+                blog(LOG_WARN, "No se ha podido establecer conexion con Project Cars. Intento [%d/%d] ...", pCarsConnTry++, PCARS_CONN_RETRIES);
+                Sleep(PCARS_CONN_DELAY_SECS*1000);
+            }
+
+            if(pCarsConnTry >= PCARS_CONN_RETRIES){
+                blog(LOG_ERROR, "Error incializando contexto PCars. Abortando servidor ...");
+                finishServer(1);
+            }
+
+            setSimSourcePCarsAPI(&simSourceCtx, &pCarsCtx);
+            blog(LOG_INFO, "Conexion con Project Cars establecida");
+        } else if(game == ASSETTO_GAME) {
+            blog(LOG_INFO, "Estableciendo conexion con Assetto Corsa ...");
+            int pCarsConnTry = 1;
+            while(pCarsConnTry < PCARS_CONN_RETRIES && initializeACContext(&aCCtx) != 0){
+
+                blog(LOG_WARN, "No se ha podido establecer conexion con Project Cars. Intento [%d/%d] ...", pCarsConnTry++, PCARS_CONN_RETRIES);
+                Sleep(PCARS_CONN_DELAY_SECS*1000);
+            }
+
+            if(pCarsConnTry >= PCARS_CONN_RETRIES){
+                blog(LOG_ERROR, "Error incializando contexto AC. Abortando servidor ...");
+                finishServer(1);
+            }
+
+            setSimSourceACAPI(&simSourceCtx, &aCCtx);
+            blog(LOG_INFO, "Conexion con Assetto Corsa establecida");
+        }
     }
     
     
-    if(initializePCarsSourceContext(&pCarsSrcCtx) != 0){
+    if(initializeSimSourceContext(&simSourceCtx) != 0){
         blog(LOG_ERROR, "Error inicializando source de datos.");
         finishServer(1);
     }
@@ -266,7 +313,7 @@ int main(int argc, char** argv) {
     if(flagSimBoard) {
         blog(LOG_INFO, "Inicializando Sim Controller en puerto COM%d ...", simCtx.comPort);
         
-        setSimCtrlPCarsSource(&simCtx, &pCarsSrcCtx);
+        setSimCtrlSimSource(&simCtx, &simSourceCtx);
         
         // Set Source Data
         if(initializetSimCtrlContext(&simCtx) != 0) {
@@ -282,7 +329,7 @@ int main(int argc, char** argv) {
     if(flagDumpWrite){    
         blog(LOG_INFO, "Iniciando Dump Writer en %s ...", pCarsDumpWriterCtx.fileName);
         
-        setDumpWriterSharedMemory(&pCarsDumpWriterCtx, pCarsSrcCtx.pCarsSHM);
+        setDumpWriterSharedMemory(&pCarsDumpWriterCtx, simSourceCtx.pCarsSourceCtx.pCarsSHM);
         if(initializePCarsDumpWriterContext(&pCarsDumpWriterCtx) != 0){
             blog(LOG_ERROR, "Error inicializando contexto PCars Dump Writer. Abortando servidor ...");
             finishServer(1);
@@ -291,7 +338,7 @@ int main(int argc, char** argv) {
     
     // Rest WS
     if(flagRestWS){
-        setRestWSSource(&restWSCtx, &pCarsSrcCtx);
+        setRestWSSource(&restWSCtx, &simSourceCtx);
         
         blog(LOG_INFO, "Iniciando Web Service Rest en puerto %d ...", restWSCtx.port);
         if(initializeRestWSContext(&restWSCtx) != 0){

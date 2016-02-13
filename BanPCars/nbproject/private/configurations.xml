@@ -26,18 +26,18 @@
       </nativedebugger>
       <runprofile version="9">
         <runcommandpicklist>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 100</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 200</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 300</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}"  -rest 8080 -com 7</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 150</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 7 -d 250</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 3 -d 750</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 3 -d 50</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 3 -d 250</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -rest 8080 -com 3 -d 550</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 3 -d 550</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpTc.dmp  -rest 8080 -com 5 -d 20</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"  -rest 8080 -com 5</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 3 -d 250</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 5 -d 250</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -rest 8080 -com 5</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -rest 8080 -com 10</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 10 -d 250</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" -g AC -com 10</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}" -r dumpSample.dmp  -rest 8080 -com 3 -d 550</runcommand>
+        <runcommand>"${OUTPUT_PATH}" -g AC -com 10</runcommand>
         <rundir></rundir>
         <buildfirst>true</buildfirst>
         <terminal-type>0</terminal-type>

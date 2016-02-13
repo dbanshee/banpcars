@@ -9,12 +9,11 @@ void loadDefaultSerialContext(serialContext* ctx) {
     ctx->connected      = 0;
 }
 
-void setSerialPort(serialContext* ctx, int port){
+void setSerialPort(serialContext* ctx, int port) {
     ctx->comPortNumber = port;
 }
 
-int initializeSerialContext(serialContext* ctx)
-{
+int initializeSerialContext(serialContext* ctx) {
     if(ctx->comPortNumber < 0) {
         blog(LOG_ERROR, "Puerto COM%d no valido. Setee puerto antes de inicializar.", ctx->comPortNumber);
         return -1;
@@ -43,7 +42,7 @@ int initializeSerialContext(serialContext* ctx)
 
         if (!GetCommState(ctx->hSerial, &dcbSerialParams))
             blog(LOG_ERROR, "No se ha podido obtener los parametros del puerto COM%d", ctx->comPortNumber);
-        else{
+        else {
             
             dcbSerialParams.BaudRate    = CBR_9600;
             dcbSerialParams.ByteSize    = 8;
@@ -75,8 +74,7 @@ int initializeSerialContext(serialContext* ctx)
     return -1;
 }
 
-void freeSerialContext(serialContext* ctx)
-{
+void freeSerialContext(serialContext* ctx) {
     if(ctx->connected){
         blog(LOG_INFO, "Liberando contexto Serial ...");
         
@@ -87,33 +85,31 @@ void freeSerialContext(serialContext* ctx)
     }
 }
 
-int readSerialData(serialContext* ctx, void *buffer, unsigned int nbChar)
-{
+int readSerialData(serialContext* ctx, void *buffer, unsigned int nbChar) {
     DWORD bytesRead;
     unsigned int toRead;
 
     ClearCommError(ctx->hSerial, &ctx->errors, &ctx->status);
 
-    if(ctx->status.cbInQue > 0){
-        if(ctx->status.cbInQue > nbChar)
+    //if(ctx->status.cbInQue > 0){
+//        if(ctx->status.cbInQue > nbChar)
             toRead = nbChar;
-        else
-            toRead = ctx->status.cbInQue;
+//        else
+//            toRead = ctx->status.cbInQue;
 
         if(ReadFile(ctx->hSerial, buffer, toRead, &bytesRead, NULL) && bytesRead != 0){
             FlushFileBuffers(ctx->hSerial);
             blog(LOG_TRACE, "Read Serial Data (to read %d bytes) (readed %d bytes) : '%s'", nbChar, bytesRead, buffer);
             return bytesRead;
         }
-    }
+    //}
     
     blog(LOG_WARN, "Read Serial Data. Nothing to read");
     return -1;
 
 }
 
-int writeSerialData(serialContext* ctx, void *buffer, unsigned int nbChar)
-{
+int writeSerialData(serialContext* ctx, void *buffer, unsigned int nbChar) {
     DWORD bytesSend = 0;
 
     if(!WriteFile(ctx->hSerial, (void *)buffer, nbChar, &bytesSend, NULL)){
@@ -130,7 +126,6 @@ int writeSerialData(serialContext* ctx, void *buffer, unsigned int nbChar)
     }       
 }
 
-int isSerialConnected(serialContext* ctx)
-{
+int isSerialConnected(serialContext* ctx) {
     return ctx->connected;
 }

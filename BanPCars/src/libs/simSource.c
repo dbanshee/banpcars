@@ -1,44 +1,58 @@
+
 #include <string.h>
 
-#include "../headers/pcarsSource.h"
+#include "../headers/simSource.h"
 
 
-void loadDefaultpCarsSourceContext(pCarsSourceContext* ctx){
-    memset(ctx, 0, sizeof(pCarsSourceContext));
+void loadDefaultSimSourceContext(simSourceContext* ctx){
+    memset(ctx, 0, sizeof(simSourceContext));
 }
 
-void setPCarsSourcePCarsAPI(pCarsSourceContext* ctx, pCarsContext* pCarsCtx){
-    ctx->pCarsCtx = pCarsCtx;
+void setSimSourcePCarsAPI(simSourceContext* ctx, pCarsContext* pCarsCtx){
+    ctx->currentGame = PCARS_GAME;
+    ctx->pCarsSourceCtx.pCarsCtx = pCarsCtx;
 }
 
-void setPCarsSourcePCarsDump(pCarsSourceContext* ctx, pCarsDumpReaderContext* pCarsDumpCtx){
-    ctx->pCarsDumpCtx = pCarsDumpCtx;
+void setSimSourceACAPI(simSourceContext* ctx, aCContext* aCCtx){
+    ctx->currentGame = ASSETTO_GAME;
+    ctx->assettoSourceCtx.acCtx = aCCtx;
 }
 
-int initializePCarsSourceContext(pCarsSourceContext* ctx){
+void setSimSourcePCarsDump(simSourceContext* ctx, pCarsDumpReaderContext* pCarsDumpCtx){
+    ctx->currentGame = PCARS_GAME;
+    ctx->pCarsSourceCtx.pCarsDumpCtx = pCarsDumpCtx;
+}
+
+int initializeSimSourceContext(simSourceContext* ctx){
     
     //TODO: Check and return errors
-    if(ctx->pCarsDumpCtx != NULL){
-        ctx->pCarsSHM = &ctx->pCarsDumpCtx->pCarsSHM;
+    if(ctx->currentGame == PCARS_GAME){
+        ctx->dataExt.lastBestLapTime        = -1;
+        ctx->dataExt.updatedLastBestLapTime = 0;
+        
+        if(ctx->pCarsSourceCtx.pCarsDumpCtx != NULL){
+            ctx->pCarsSourceCtx.pCarsSHM = &ctx->pCarsSourceCtx.pCarsDumpCtx->pCarsSHM;
+            return 0;
+        }
+
+        if(ctx->pCarsSourceCtx.pCarsCtx != NULL){
+            ctx->pCarsSourceCtx.pCarsSHM = ctx->pCarsSourceCtx.pCarsCtx->shmMem;
+            return 0;
+        }
+    } else if (ctx->currentGame == ASSETTO_GAME) {
+        ctx->dataExt.lastBestLapTime        = -1;
+        ctx->dataExt.updatedLastBestLapTime = 0;
         return 0;
     }
-    
-    if(ctx->pCarsCtx != NULL){
-        ctx->pCarsSHM = ctx->pCarsCtx->shmMem;
-        return 0;
-    }
-    
-    ctx->dataExt.lastBestLapTime        = -1;
-    ctx->dataExt.updatedLastBestLapTime = 0;
     
     return -1;
 }
 
-void freePCarsSourceContext(pCarsSourceContext* ctx){
+void freeSimSourceContext(simSourceContext* ctx){
     // Nothing to do
 }
 
-int getPCarsSourceFields(pCarsSourceContext* ctx, jSonDocument* jSonDoc){
+int getSimSourceFields(jSonDocument* jSonDoc){
     int i;
     initializeJSonDocument(jSonDoc);
     
@@ -107,74 +121,74 @@ void addArrayBoolean(jSonDocument* doc, char* fieldName, bool* arr, int dim){
     closeJSonArray(doc);
 }
 
-void getExtMSessionSectorGap(pCarsSourceContext* ctx, float* res){
-    
-    int sector = ctx->pCarsSHM->mParticipantInfo[ctx->pCarsSHM->mViewedParticipantIndex].mCurrentSector;
-    
-    // Update Data. Separate in refresh action?
-    if(sector > 1){
-        if(ctx->dataExt.updatedLastBestLapTime == 0){
-            ctx->dataExt.lastBestLapTime = ctx->pCarsSHM->mBestLapTime;
-            ctx->dataExt.updatedLastBestLapTime = 1;
-        }else{
-            ctx->dataExt.updatedLastBestLapTime = 0;
-        }
-    } 
-    
-    if(sector < 2 || ctx->pCarsSHM->mCurrentSector1Time == -1  || ctx->pCarsSHM->mFastestSector1Time == -1){
-        res[0] = -999999;  
-    } else {
-        res[0] = ctx->pCarsSHM->mCurrentSector1Time - ctx->pCarsSHM->mFastestSector1Time;
-    }
-    
-    if(sector < 3 ||ctx->pCarsSHM->mCurrentSector2Time == -1  || ctx->pCarsSHM->mFastestSector2Time == -1){
-        res[1] = -999999;  
-    } else {
-        res[1] = ctx->pCarsSHM->mCurrentSector2Time - ctx->pCarsSHM->mFastestSector2Time;
-    }
-    
-    if(sector == 1 && ctx->dataExt.lastBestLapTime != -1 && ctx->pCarsSHM->mBestLapTime != -1){
-        res[2] = ctx->pCarsSHM->mLastLapTime - ctx->dataExt.lastBestLapTime;
-    }else{
-        res[2] = -999999;
-    }
-}
+//void getExtMSessionSectorGap(pCarsSourceContext* ctx, float* res){
+//    
+//    int sector = ctx->pCarsSHM->mParticipantInfo[ctx->pCarsSHM->mViewedParticipantIndex].mCurrentSector;
+//    
+//    // Update Data. Separate in refresh action?
+//    if(sector > 1){
+//        if(ctx->dataExt.updatedLastBestLapTime == 0){
+//            ctx->dataExt.lastBestLapTime = ctx->pCarsSHM->mBestLapTime;
+//            ctx->dataExt.updatedLastBestLapTime = 1;
+//        }else{
+//            ctx->dataExt.updatedLastBestLapTime = 0;
+//        }
+//    } 
+//    
+//    if(sector < 2 || ctx->pCarsSHM->mCurrentSector1Time == -1  || ctx->pCarsSHM->mFastestSector1Time == -1){
+//        res[0] = -999999;  
+//    } else {
+//        res[0] = ctx->pCarsSHM->mCurrentSector1Time - ctx->pCarsSHM->mFastestSector1Time;
+//    }
+//    
+//    if(sector < 3 ||ctx->pCarsSHM->mCurrentSector2Time == -1  || ctx->pCarsSHM->mFastestSector2Time == -1){
+//        res[1] = -999999;  
+//    } else {
+//        res[1] = ctx->pCarsSHM->mCurrentSector2Time - ctx->pCarsSHM->mFastestSector2Time;
+//    }
+//    
+//    if(sector == 1 && ctx->dataExt.lastBestLapTime != -1 && ctx->pCarsSHM->mBestLapTime != -1){
+//        res[2] = ctx->pCarsSHM->mLastLapTime - ctx->dataExt.lastBestLapTime;
+//    }else{
+//        res[2] = -999999;
+//    }
+////}
+//
+//float getExtMSessionDelta(pCarsSourceContext* ctx){
+//    float res[3];
+//    float delta = 0;
+//    
+//    int sector = ctx->pCarsSHM->mParticipantInfo[ctx->pCarsSHM->mViewedParticipantIndex].mCurrentSector;
+//    
+//    getExtMSessionSectorGap(ctx, res);
+//    
+//    if(sector <= 1)
+//        delta = -999999;
+//        
+//    if(sector >= 1 && res[0] != -999999)
+//        delta += res[0];
+//    
+//    if(sector >= 2 && res[1] != -999999)
+//        delta += res[1];
+//    
+//    return delta;
+//}
 
-float getExtMSessionDelta(pCarsSourceContext* ctx){
-    float res[3];
-    float delta = 0;
-    
-    int sector = ctx->pCarsSHM->mParticipantInfo[ctx->pCarsSHM->mViewedParticipantIndex].mCurrentSector;
-    
-    getExtMSessionSectorGap(ctx, res);
-    
-    if(sector <= 1)
-        delta = -999999;
-        
-    if(sector >= 1 && res[0] != -999999)
-        delta += res[0];
-    
-    if(sector >= 2 && res[1] != -999999)
-        delta += res[1];
-    
-    return delta;
-}
 
-
-
-void getExtMCurrentTime(pCarsSourceContext* ctx, float* res){
-    res[0] = ctx->pCarsSHM->mCurrentTime;
-    res[1] = ctx->pCarsSHM->mLapInvalidated || ctx->pCarsSHM->mLapInvalidated == -1;
-}
-                    
-void getExtMLastTime(pCarsSourceContext* ctx, float* res){
-    res[0] = ctx->pCarsSHM->mLastLapTime;
-    res[1] = ctx->pCarsSHM->mLastLapTime != ctx->pCarsSHM->mBestLapTime;
-}
-
-void getExtMPosition(pCarsSourceContext* ctx, char* buff){
-    sprintf(buff, "%d/%d", ctx->pCarsSHM->mViewedParticipantIndex+1, ctx->pCarsSHM->mNumParticipants);
-}
+//
+//void getExtMCurrentTime(pCarsSourceContext* ctx, float* res){
+//    res[0] = ctx->pCarsSHM->mCurrentTime;
+//    res[1] = ctx->pCarsSHM->mLapInvalidated || ctx->pCarsSHM->mLapInvalidated == -1;
+//}
+//                    
+//void getExtMLastTime(pCarsSourceContext* ctx, float* res){
+//    res[0] = ctx->pCarsSHM->mLastLapTime;
+//    res[1] = ctx->pCarsSHM->mLastLapTime != ctx->pCarsSHM->mBestLapTime;
+//}
+//
+//void getExtMPosition(pCarsSourceContext* ctx, char* buff){
+//    sprintf(buff, "%d/%d", ctx->pCarsSHM->mViewedParticipantIndex+1, ctx->pCarsSHM->mNumParticipants);
+//}
 
 char* getExtMPCrashState(pCarsSourceContext* ctx){
     switch(ctx->pCarsSHM->mCrashState){
@@ -192,8 +206,7 @@ char* getExtMPCrashState(pCarsSourceContext* ctx){
             return "-";
     }
 }
-
-int getPCarsData(pCarsSourceContext* ctx, int* fieldsArray, jSonDocument* out){
+int getPCarsData(simSourceContext* ctx, int* fieldsArray, jSonDocument* out){
     int i;
     float res[4];
     char buff[1024];
@@ -204,332 +217,332 @@ int getPCarsData(pCarsSourceContext* ctx, int* fieldsArray, jSonDocument* out){
         if(fieldsArray[i] == 1){
             switch (i){
                 case MVERSION: 
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mVersion);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mVersion);
                     break;
                 case MBUILDVERSIONNUMBER:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mBuildVersionNumber);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mBuildVersionNumber);
                     break;
                 case MGAMESTATE:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mGameState);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mGameState);
                     break;
                 case MSESSIONSTATE:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mSessionState);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mSessionState);
                     break;
                 case MRACESTATE:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mRaceState);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mRaceState);
                     break;
                 case MVIEWEDPARTICIPANTINDEX:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mViewedParticipantIndex);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mViewedParticipantIndex);
                     break;
                 case MNUMPARTICIPANTS:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mNumParticipants);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mNumParticipants);
                     break;
     //            case MPARTICIPANTINFO:
     //                    return "MPARTICIPANTINFO";
                 case MUNFILTEREDTHROTTLE:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mUnfilteredThrottle);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mUnfilteredThrottle);
                     break;
                 case MUNFILTEREDBRAKE :
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mUnfilteredBrake);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mUnfilteredBrake);
                     break;
                 case MUNFILTEREDSTEERING:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mUnfilteredSteering);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mUnfilteredSteering);
                     break;
                 case MUNFILTEREDCLUTCH:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mUnfilteredClutch);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mUnfilteredClutch);
                     break;
                 case MCARNAME:
-                    addSimpleStringValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCarName);
+                    addSimpleStringValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mCarName);
                     break;
                 case MCARCLASSNAME:
-                    addSimpleStringValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCarClassName);
+                    addSimpleStringValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mCarClassName);
                     break;
                 case MLAPSINEVENT:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mLapsInEvent);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mLapsInEvent);
                     break;
                 case MTRACKLOCATION:
-                    addSimpleStringValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTrackLocation);
+                    addSimpleStringValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTrackLocation);
                     break;
                 case MTRACKVARIATION:
-                    addSimpleStringValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTrackVariation);
+                    addSimpleStringValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTrackVariation);
                     break;
                 case MTRACKLENGTH:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTrackLength);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTrackLength);
                     break;
                 case MLAPINVALIDATED:
-                    addSimpleBoolValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTrackLength);
+                    addSimpleBoolValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTrackLength);
                     break;
                 case MBESTLAPTIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mBestLapTime);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mBestLapTime);
                     break;
                 case MLASTLAPTIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mLastLapTime);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mLastLapTime);
                     break;
                 case MCURRENTTIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCurrentTime);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mCurrentTime);
                     break;
                 case MSPLITTIMEAHEAD:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mSplitTimeAhead);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mSplitTimeAhead);
                     break;
                 case MSPLITTIMEBEHIND:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mSplitTimeBehind);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mSplitTimeBehind);
                     break;
                 case MSPLITTIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mSplitTime);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mSplitTime);
                     break;
                 case MEVENTTIMEREMAINING:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mEventTimeRemaining);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mEventTimeRemaining);
                     break;
                 case MPERSONALFASTESTLAPTIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mPersonalFastestLapTime);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mPersonalFastestLapTime);
                     break;
                 case MWORLDFASTESTLAPTIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWorldFastestLapTime);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWorldFastestLapTime);
                     break;
                 case MCURRENTSECTOR1TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCurrentSector1Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mCurrentSector1Time);
                     break;
                 case MCURRENTSECTOR2TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCurrentSector2Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mCurrentSector2Time);
                     break;
                 case MCURRENTSECTOR3TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCurrentSector3Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mCurrentSector3Time);
                     break;
                 case MFASTESTSECTOR1TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mFastestSector1Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mFastestSector1Time);
                     break;
                 case MFASTESTSECTOR2TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mFastestSector2Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mFastestSector2Time);
                     break;
                 case MFASTESTSECTOR3TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mFastestSector3Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mFastestSector3Time);
                     break;
                 case MPERSONALFASTESTSECTOR1TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mPersonalFastestSector1Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mPersonalFastestSector1Time);
                     break;
                 case MPERSONALFASTESTSECTOR2TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mPersonalFastestSector2Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mPersonalFastestSector2Time);
                     break;
                 case MPERSONALFASTESTSECTOR3TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mPersonalFastestSector3Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mPersonalFastestSector3Time);
                     break;
                 case MWORLDFASTESTSECTOR1TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWorldFastestSector1Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWorldFastestSector1Time);
                     break;
                 case MWORLDFASTESTSECTOR2TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWorldFastestSector2Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWorldFastestSector2Time);
                     break;
                 case MWORLDFASTESTSECTOR3TIME:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWorldFastestSector3Time);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWorldFastestSector3Time);
                     break;
                 case MHIGHESTFLAGCOLOUR:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mHighestFlagColour);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mHighestFlagColour);
                     break;
                 case MHIGHESTFLAGREASON:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mHighestFlagReason);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mHighestFlagReason);
                     break;
                 case MPITMODE:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mPitMode);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mPitMode);
                     break;
                 case MPITSCHEDULE:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mPitSchedule);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mPitSchedule);
                     break;
                 case MCARFLAGS:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCarFlags);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mCarFlags);
                     break;
                 case MOILTEMPCELSIUS:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mOilTempCelsius);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mOilTempCelsius);
                     break;
                 case MOILPRESSUREKPA:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mOilPressureKPa);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mOilPressureKPa);
                     break;
                 case MWATERTEMPCELSIUS:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWaterTempCelsius);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWaterTempCelsius);
                     break;
                 case MWATERPRESSUREKPA:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWaterPressureKPa);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWaterPressureKPa);
                     break;
                 case MFUELPRESSUREKPA:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mFuelPressureKPa);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mFuelPressureKPa);
                     break;
                 case MFUELLEVEL:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mFuelLevel);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mFuelLevel);
                     break;
                 case MFUELCAPACITY :
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mFuelCapacity);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mFuelCapacity);
                     break;
                 case MSPEED:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mSpeed);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mSpeed);
                     break;
                 case MRPM:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mRpm);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mRpm);
                     break;
                 case MMAXRPM:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mMaxRPM);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mMaxRPM);
                     break;
                 case MBRAKE:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mBrake);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mBrake);
                     break;
                 case MTHROTTLE:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mThrottle);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mThrottle);
                     break;
                 case MCLUTCH:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mClutch);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mClutch);
                     break;
                 case MSTEERING:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mSteering);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mSteering);
                     break;
                 case MGEAR:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mGear);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mGear);
                     break;
                 case MNUMGEARS:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mNumGears);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mNumGears);
                     break;
                 case MODOMETERKM:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mOdometerKM);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mOdometerKM);
                     break;
                 case MANTILOCKACTIVE:
-                    addSimpleBoolValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mAntiLockActive);
+                    addSimpleBoolValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mAntiLockActive);
                     break;
                 case MLASTOPPONENTCOLLISIONINDEX :
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mLastOpponentCollisionIndex);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mLastOpponentCollisionIndex);
                     break;
                 case MLASTOPPONENTCOLLISIONMAGNITUDE :
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mLastOpponentCollisionMagnitude);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mLastOpponentCollisionMagnitude);
                     break;
                 case MBOOSTACTIVE:
-                    addSimpleBoolValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mBoostActive);
+                    addSimpleBoolValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mBoostActive);
                     break;
                 case MBOOSTAMOUNT:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mBoostAmount);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mBoostAmount);
                     break;
                 case MORIENTATION:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mOrientation, VEC_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mOrientation, VEC_MAX);
                     break;
                 case MLOCALVELOCITY:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mLocalVelocity, VEC_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mLocalVelocity, VEC_MAX);
                     break;
                 case MWORLDVELOCITY:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWorldVelocity, VEC_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWorldVelocity, VEC_MAX);
                     break;
                 case MANGULARVELOCITY:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mAngularVelocity, VEC_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mAngularVelocity, VEC_MAX);
                     break;
                 case MLOCALACCELERATION:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mLocalAcceleration, VEC_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mLocalAcceleration, VEC_MAX);
                     break;
                 case MWORLDACCELERATION:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWorldAcceleration, VEC_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWorldAcceleration, VEC_MAX);
                     break;
                 case MEXTENTSCENTRE:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mExtentsCentre, VEC_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mExtentsCentre, VEC_MAX);
                     break;
                 case MTYREFLAGS:
-                    addArrayInteger(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreFlags, TYRE_MAX);
+                    addArrayInteger(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreFlags, TYRE_MAX);
                     break;
                 case MTERRAIN:
-                    addArrayInteger(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTerrain, TYRE_MAX);
+                    addArrayInteger(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTerrain, TYRE_MAX);
                     break;
                 case MTYREY:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreY, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreY, TYRE_MAX);
                     break;
                 case MTYRERPS:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreRPS, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreRPS, TYRE_MAX);
                     break;
                 case MTYRESLIPSPEED:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreSlipSpeed, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreSlipSpeed, TYRE_MAX);
                     break;
                 case MTYRETEMP:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreTemp, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreTemp, TYRE_MAX);
                     break;
                 case MTYREGRIP:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreGrip, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreGrip, TYRE_MAX);
                     break;
                 case MTYREHEIGHTABOVEGROUND:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreHeightAboveGround, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreHeightAboveGround, TYRE_MAX);
                     break;
                 case MTYRELATERALSTIFFNESS:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreLateralStiffness, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreLateralStiffness, TYRE_MAX);
                     break;
                 case MTYREWEAR:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreWear, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreWear, TYRE_MAX);
                     break;
                 case MBRAKEDAMAGE:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mBrakeDamage, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mBrakeDamage, TYRE_MAX);
                     break;
                 case MSUSPENSIONDAMAGE:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mSuspensionDamage, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mSuspensionDamage, TYRE_MAX);
                     break;
                 case MBRAKETEMPCELSIUS:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mBrakeTempCelsius, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mBrakeTempCelsius, TYRE_MAX);
                     break;
                 case MTYRETREADTEMP:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreTreadTemp, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreTreadTemp, TYRE_MAX);
                     break;
                 case MTYRELAYERTEMP:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreLayerTemp, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreLayerTemp, TYRE_MAX);
                     break;
                 case MTYRECARCASSTEMP:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreCarcassTemp, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreCarcassTemp, TYRE_MAX);
                     break;
                 case MTYRERIMTEMP:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreRimTemp, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreRimTemp, TYRE_MAX);
                     break;
                 case MTYREINTERNALAIRTEMP:
-                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTyreInternalAirTemp, TYRE_MAX);
+                    addArrayFloat(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTyreInternalAirTemp, TYRE_MAX);
                     break;
                 case MCRASHSTATE:
-                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCrashState);
+                    addSimpleIntegerValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mCrashState);
                     break;
                 case MAERODAMAGE:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mAeroDamage);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mAeroDamage);
                     break;
                 case MENGINEDAMAGE:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mEngineDamage);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mEngineDamage);
                     break;
                 case MAMBIENTTEMPERATURE:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mAmbientTemperature);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mAmbientTemperature);
                     break;
                 case MTRACKTEMPERATURE:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mTrackTemperature);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mTrackTemperature);
                     break;
                 case MRAINDENSITY:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mRainDensity);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mRainDensity);
                     break;
                 case MWINDSPEED:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWindSpeed);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWindSpeed);
                     break;
                 case MWINDDIRECTIONX:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWindDirectionX);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWindDirectionX);
                     break;
                 case MWINDDIRECTIONY:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mWindDirectionY);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mWindDirectionY);
                     break;
                 case MCLOUDBRIGHTNESS:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSHM->mCloudBrightness);
+                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), ctx->pCarsSourceCtx.pCarsSHM->mCloudBrightness);
                     break;
-                case EXT_MSESSIONSECTORGAP:
-                    getExtMSessionSectorGap(ctx, res);
-                    addArrayFloat(out, enumPCarsFieldsToString(i), res, 3 /*NUM SECTORS*/);
-                    break;
-                case EXT_MSESSIONSECTORDELTA:
-                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), getExtMSessionDelta(ctx));
-                    break;                    
-                case EXT_MCURRENTTIME:
-                    getExtMCurrentTime(ctx, res);
-                    addArrayFloat(out, enumPCarsFieldsToString(i), res, 2 /*NUM SECTORS*/);
-                    break;
-                case EXT_MLASTLAPTIME:
-                    getExtMLastTime(ctx, res);
-                    addArrayFloat(out, enumPCarsFieldsToString(i), res, 2 /*NUM SECTORS*/);
-                    break;
-                case EXT_MPOSITION:
-                    getExtMPosition(ctx, buff);
-                    addSimpleStringValue(out, enumPCarsFieldsToString(i), buff);
-                    break;
-                case EXT_MCRASHSTATE:
-                    addSimpleStringValue(out, enumPCarsFieldsToString(i), getExtMPCrashState(ctx));
-                    break;
+//                case EXT_MSESSIONSECTORGAP:
+//                    getExtMSessionSectorGap(ctx, res);
+//                    addArrayFloat(out, enumPCarsFieldsToString(i), res, 3 /*NUM SECTORS*/);
+//                    break;
+//                case EXT_MSESSIONSECTORDELTA:
+//                    addSimpleFloatValue(out, enumPCarsFieldsToString(i), getExtMSessionDelta(ctx));
+//                    break;                    
+//                case EXT_MCURRENTTIME:
+//                    getExtMCurrentTime(ctx, res);
+//                    addArrayFloat(out, enumPCarsFieldsToString(i), res, 2 /*NUM SECTORS*/);
+//                    break;
+//                case EXT_MLASTLAPTIME:
+//                    getExtMLastTime(ctx, res);
+//                    addArrayFloat(out, enumPCarsFieldsToString(i), res, 2 /*NUM SECTORS*/);
+//                    break;
+//                case EXT_MPOSITION:
+//                    getExtMPosition(ctx, buff);
+//                    addSimpleStringValue(out, enumPCarsFieldsToString(i), buff);
+//                    break;
+//                case EXT_MCRASHSTATE:
+//                    addSimpleStringValue(out, enumPCarsFieldsToString(i), getExtMPCrashState(ctx));
+//                    break;
                 default:
                     addSimpleStringValue(out, enumPCarsFieldsToString(i), "NOT_AVAILABLE");
                     break;
@@ -990,4 +1003,63 @@ char* enumPCarsFieldsToString(int e){
 
 
 
+float getSpeed(simSourceContext* ctx) {
+    if(ctx->currentGame == PCARS_GAME){
+        return ctx->pCarsSourceCtx.pCarsSHM->mSpeed * 3.6;
+    } else if(ctx->currentGame == ASSETTO_GAME){
+        return ctx->assettoSourceCtx.acCtx->shmPhysics->speedKmh;
+    } else {
+        return -1;
+    }
+}
 
+float getMaxRpms(simSourceContext* ctx){
+    if(ctx->currentGame == PCARS_GAME){
+        return ctx->pCarsSourceCtx.pCarsSHM->mMaxRPM;
+    } else if(ctx->currentGame == ASSETTO_GAME){
+        return ctx->assettoSourceCtx.acCtx->shmStatic->maxRpm;
+    } else {
+        return -1;
+    }
+}
+
+float getRpm(simSourceContext* ctx) {
+    if(ctx->currentGame == PCARS_GAME){
+        return ctx->pCarsSourceCtx.pCarsSHM->mRpm;
+    } else if(ctx->currentGame == ASSETTO_GAME){
+        return ctx->assettoSourceCtx.acCtx->shmPhysics->rpms;
+    } else {
+        return -1;
+    }
+}
+
+float getGear(simSourceContext* ctx) {
+    if(ctx->currentGame == PCARS_GAME){
+        return ctx->pCarsSourceCtx.pCarsSHM->mGear;
+    } else if(ctx->currentGame == ASSETTO_GAME){
+        return ctx->assettoSourceCtx.acCtx->shmPhysics->gear;
+    } else {
+        return -1;
+    }
+}
+
+float getThrottle(simSourceContext* ctx){
+    if(ctx->currentGame == PCARS_GAME){
+        return ctx->pCarsSourceCtx.pCarsSHM->mThrottle;
+    } else if(ctx->currentGame == ASSETTO_GAME){
+        return ctx->assettoSourceCtx.acCtx->shmPhysics->gas;
+    } else {
+        return -1;
+    }
+}
+
+
+int getGameState(simSourceContext* ctx){
+    if(ctx->currentGame == PCARS_GAME){
+        return ctx->pCarsSourceCtx.pCarsSHM->mGameState;
+    } else if(ctx->currentGame == ASSETTO_GAME){
+        return GAME_INGAME_PLAYING;
+    } else {
+        return -1;
+    }
+}

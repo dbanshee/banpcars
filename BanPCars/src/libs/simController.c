@@ -6,18 +6,18 @@
 #include <sys/time.h>
 
 
-#define LED_RPM_NUMLEDS             12
-#define LED_RPM_START_RATIO         0.85
-#define LED_BLINK_DELAY_MILLIS      250L
-#define LED_NEUTRAL_DELAY_MILLIS    3000L
-#define TACHOMETER_DELAY_MILLIS     300L
+#define LED_RPM_NUMLEDS                 12
+#define LED_RPM_START_RATIO             0.85
+#define LED_BLINK_DELAY_MILLIS          250L
+#define LED_NEUTRAL_DELAY_MILLIS        3000L
+#define TACHOMETER_DELAY_MILLIS         100L
 
-#define BINARY_CMD_CHANGE_MODE        0x00
-#define BINARY_CMD_LED1               0x01
-#define BINARY_CMD_BLINK              0x02
-#define BINARY_CMD_NEUTRAL            0x03
-#define BINARY_CMD_KITT               0x04
-#define BINARY_CMD_TC                 0x05
+#define BINARY_CMD_CHANGE_MODE          0x00
+#define BINARY_CMD_LED1                 0x01
+#define BINARY_CMD_BLINK                0x02
+#define BINARY_CMD_NEUTRAL              0x03
+#define BINARY_CMD_KITT                 0x04
+#define BINARY_CMD_TC                   0x05
 
 
 static int  lastGameState   = 0;
@@ -49,8 +49,8 @@ void setSimCtrlCOMPort(simCtrlContext* ctx, int comPort){
     ctx->comPort = comPort;
 }
 
-void setSimCtrlPCarsSource(simCtrlContext* ctx, pCarsSourceContext * pCarsSrcCtx){
-    ctx->pCarsSrcCtx = pCarsSrcCtx;
+void setSimCtrlSimSource(simCtrlContext* ctx, simSourceContext * simSrcCtx){
+    ctx->simSrcCtx = simSrcCtx;
 }
 
 int initializetSimCtrlContext(simCtrlContext* ctx){
@@ -68,8 +68,7 @@ int initializetSimCtrlContext(simCtrlContext* ctx){
 
 void freeSimCtrlContext(simCtrlContext* ctx){
 //    if(ctx->serialCtx != NULL){
-        //sendSimBoardCmd(&ctx->serialCtx, "L1N", "0");
-    sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_LED1, 0);
+        sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_LED1, 0);
         freeSerialContext(&ctx->serialCtx);
 //    }
 }
@@ -91,31 +90,34 @@ int refreshLEDBar(simCtrlContext* ctx){
     long currentTime = current_timestamp();
     char buff[5];
     
-    int gameState = ctx->pCarsSrcCtx->pCarsSHM->mGameState;
+    int gameState = getGameState(ctx->simSrcCtx);
     
     if(kittOn == 0 && (gameState == GAME_EXITED || gameState == GAME_FRONT_END || gameState == GAME_INGAME_PAUSED)){
-        //sendSimBoardCmd(&ctx->serialCtx, "L1KITT", "1");
         sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_KITT, 1);
         kittOn = 1;
     }else if(gameState == GAME_INGAME_PLAYING){
         
         if(kittOn == 1){
-            //sendSimBoardCmd(&ctx->serialCtx, "L1KITT", "0");
             sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_KITT, 0);
             kittOn = 0;
         }
         
         // Acceso sucio directo por estructuras. TODO: acceso getters
         // Aparentemente solo funciona el flag del limitador del pitlane !!!
-        //unsigned int engineActive   = (ctx->pCarsSrcCtx->pCarsSHM->mCarFlags & (1<<1)) >> 1;
-        int engineActive    = (ctx->pCarsSrcCtx->pCarsSHM->mRpm > 10); // Increiblemente con el motor calado da 0.98...
+        //unsigned int engineActive   = (ctx->simSrcCtx->pCarsSourceCtx->pCarsSHM->mCarFlags & (1<<1)) >> 1;
+        
 
-        float throttle      = ctx->pCarsSrcCtx->pCarsSHM->mThrottle;
-        int nGear           = ctx->pCarsSrcCtx->pCarsSHM->mGear;
-        int rpms            = ctx->pCarsSrcCtx->pCarsSHM->mRpm;
-        int maxRpms         = ctx->pCarsSrcCtx->pCarsSHM->mMaxRPM/**LED_RPM_CHANGE_RATIO*/;
+//        float throttle      = ctx->simSrcCtx->pCarsSourceCtx.pCarsSHM->mThrottle;
+        float throttle      = getThrottle(ctx->simSrcCtx);
+//        int nGear           = ctx->simSrcCtx->pCarsSourceCtx.pCarsSHM->mGear;
+        int nGear           = getGear(ctx->simSrcCtx);
+//        int rpms            = ctx->simSrcCtx->pCarsSourceCtx.pCarsSHM->mRpm;
+        int rpms            = getRpm(ctx->simSrcCtx);
+//        int maxRpms         = ctx->simSrcCtx->pCarsSourceCtx.pCarsSHM->mMaxRPM/**LED_RPM_CHANGE_RATIO*/;
+        int maxRpms         = getMaxRpms(ctx->simSrcCtx);
         double ledsThres    = maxRpms*LED_RPM_START_RATIO;
         double ledLen       = (maxRpms - ledsThres) / LED_RPM_NUMLEDS; 
+        int engineActive    = (rpms > 10); // Increiblemente con el motor calado da 0.98 (en PCars)...
 
         int numLeds = 0;
 
@@ -124,7 +126,6 @@ int refreshLEDBar(simCtrlContext* ctx){
             numLeds = round((rpms - ledsThres) / ledLen); //FIXME
 
             if(numLeds > LED_RPM_NUMLEDS){
-                //blog(LOG_WARN, "Calculo de leds erroneo. numLeds = %d, Total Leds = %d, maxRpms = %d, rpms = %d", numLeds, LED_RPM_NUMLEDS, maxRpms, rpms);
                 numLeds = LED_RPM_NUMLEDS;
             }
         }
@@ -132,10 +133,8 @@ int refreshLEDBar(simCtrlContext* ctx){
 
         // Cambio en numero de leds
         if(lastLedOn != numLeds){
-
             itoa(numLeds, buff, 10);
-            //sendSimBoardCmd(&ctx->serialCtx, "L1N", buff); // Disable other leds mode if active (BLINK, NEUTRAL, ... ))
-            sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_LED1, (uint16_t) numLeds);
+            sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_LED1, (uint16_t) numLeds); // Disable other leds mode if active (BLINK, NEUTRAL, ... ))
             blinkOn = neutralOn = 0;    
         }
 
@@ -149,7 +148,6 @@ int refreshLEDBar(simCtrlContext* ctx){
 
         // Todos los leds ON mas de LED_BLINK_DELAY_MILLIS
         if(blinkOn == 1 && (current_timestamp() - startBlinkTime) > LED_BLINK_DELAY_MILLIS){
-            //sendSimBoardCmd(&ctx->serialCtx, "L1BLINK", "1");
             sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_BLINK, 1);
             blinkOn = 2;
         }
@@ -158,11 +156,9 @@ int refreshLEDBar(simCtrlContext* ctx){
         // Start Engine
         if(lastEngineOn != engineActive){
             if(engineActive == 1){
-                //sendSimBoardCmd(&ctx->serialCtx, "L1NEUTRAL", "1");
                 sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_NEUTRAL, 1);
                 neutralOn = 2;
             }else{
-                //sendSimBoardCmd(&ctx->serialCtx, "L1NEUTRAL", "0");
                 sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_NEUTRAL, 0);
                 neutralOn = 0;
             }
@@ -177,11 +173,9 @@ int refreshLEDBar(simCtrlContext* ctx){
         // Neutral start/stop
         if(neutralOn > 0){
             if(neutralOn == 2 && (nGear != 0 || numLeds != 0 || throttle != 0 || !engineActive)){
-                //sendSimBoardCmd(&ctx->serialCtx, "L1NEUTRAL", "0");
                 sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_NEUTRAL, 0);
                 neutralOn = 0;
             } else if(neutralOn == 1 && (currentTime - startNeutralTime) > LED_NEUTRAL_DELAY_MILLIS){
-                //sendSimBoardCmd(&ctx->serialCtx, "L1NEUTRAL", "1");
                 sendSimBoardCmdByte(&ctx->serialCtx, BINARY_CMD_NEUTRAL, 1);
                 neutralOn = 2;
             }
@@ -203,7 +197,7 @@ void refresh8Segments(simCtrlContext* ctx){
     char buff [8];
     
     // Acceso sucio directo por estructuras. TODO: acceso getters
-    int speed = ctx->pCarsSrcCtx->pCarsSHM->mSpeed *3.6;
+    int speed = getSpeed(ctx->simSrcCtx);
     
     if(speed != lastSpeed){
         lastSpeed = speed;
@@ -219,7 +213,7 @@ void refreshTachometer(simCtrlContext* ctx) {
     if(currentTime - lastTachometer > TACHOMETER_DELAY_MILLIS){
         lastTachometer = currentTime;
         
-        int rpms = ctx->pCarsSrcCtx->pCarsSHM->mRpm;
+        int rpms = getRpm(ctx->simSrcCtx);
         if(lastTCRpms != rpms) {
             sendSimBoardCmdInt(&ctx->serialCtx, BINARY_CMD_TC, (uint16_t) rpms);
         }
@@ -230,25 +224,10 @@ void refreshTachometer(simCtrlContext* ctx) {
 
 
 int refreshMainPanel(simCtrlContext* ctx){
-    //refreshLEDBar(ctx);
+    refreshLEDBar(ctx);
 //    refresh8Segments(ctx);
     refreshTachometer(ctx);
 }
-
-
-//int sendSimBoardCmd(serialContext* ctx, char* cmd, char* value) {
-//    char buff[256];
-//    int i = 256;
-//    int readed;
-//    
-//    sprintf(buff, "SET %s=%s\r", cmd, value);
-//    
-//    blog(LOG_TRACE, "Sended (%d), '%s'", strlen(buff), buff);
-//    writeSerialData(ctx, buff, strlen(buff));
-//    
-//    //readed = readSerialData(ctx, buff, i);
-//    return 0;
-//}
 
 int sendSimBoardCmdByte(serialContext* ctx, char cmd, char value) {
     char buff[3];
@@ -259,10 +238,10 @@ int sendSimBoardCmdByte(serialContext* ctx, char cmd, char value) {
     buff[2] = '\n';
     
     writeSerialData(ctx, buff, 3);
-    Sleep(10);
-    readed = readSerialData(ctx, buff, 3);
-    
-    //blog(LOG_TRACE, "Readed (%d)", readed);
+    readed = readSerialData(ctx, buff, 1);
+    if(readed < 1) {
+        printf("No serial Data readed!! TC %d", value);
+    }
     return 0;
 }
 
@@ -276,12 +255,9 @@ int sendSimBoardCmdInt(serialContext* ctx, char cmd, uint16_t value) {
     buff[3] = '\n';
     
     writeSerialData(ctx, buff, 4);
-    Sleep(10);
-    readed = readSerialData(ctx, buff, 4);
+    readed = readSerialData(ctx, buff, 1);
     if(readed < 1) {
         printf("No serial Data readed!! TC %d", value);
     }
-    
-    //blog(LOG_TRACE, "Readed (%d)", readed);
     return 0;
 }
